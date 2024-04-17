@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">SmartApp</string>
+    <string name="password">Password</string>
+    <string name="email_address">Email Address</string>
+    <string name="hello_hi_whasap_bye">Hello, hi, Whasap, bye</string>
+    <string name="login_account">Login Account</string>
+    <string name="not_smart_home">not Smart Home</string>
+    <string name="sign_in">Sign In</string>
+    <string name="don_t_have_an_account_join_us">Don\'t have an account? Join Us</string>
+</resources>

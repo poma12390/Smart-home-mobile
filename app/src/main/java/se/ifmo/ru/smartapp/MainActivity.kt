@@ -3,32 +3,47 @@ package se.ifmo.ru.smartapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import se.ifmo.ru.smartapp.ui.theme.SmartAppTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import se.ifmo.ru.smartapp.ui.pages.LoginPage
+import se.ifmo.ru.smartapp.ui.pages.RegisterPage
+
+enum class AppScreen {
+    LOGIN,
+    REGISTER
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
 
+        val isLoggedIn = checkIfUserLoggedIn()
+
+        setContent {
+            if (isLoggedIn) {
+                MainPage()
+            } else {
+                val navController = rememberNavController()
+                NavHost(navController, startDestination = "login") {
+                    composable("login") { LoginPage(navController) }
+                    composable("register") { RegisterPage(navController) }
+                }
+            }
+        }
     }
+}
+private fun checkIfUserLoggedIn(): Boolean {
+    // Тут может быть логика проверки состояния сессии пользователя
+    return false
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SmartAppTheme {
-        Greeting("Android")
-    }
+fun MainPage() {
+    // ... Ваш UI для MainPage
 }

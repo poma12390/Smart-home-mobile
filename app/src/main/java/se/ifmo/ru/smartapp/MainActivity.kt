@@ -11,10 +11,6 @@ import se.ifmo.ru.smartapp.ui.pages.LoginPage
 import se.ifmo.ru.smartapp.ui.pages.MainPage
 import se.ifmo.ru.smartapp.ui.pages.RegisterPage
 
-enum class AppScreen {
-    LOGIN,
-    REGISTER
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

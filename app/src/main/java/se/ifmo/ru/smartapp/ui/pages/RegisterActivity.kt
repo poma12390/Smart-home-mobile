@@ -1,13 +1,13 @@
 package se.ifmo.ru.smartapp.ui.pages
 
 import androidx.compose.foundation.layout.*
-import kotlinx.coroutines.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -19,10 +19,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
+import se.ifmo.ru.smartapp.ui.pages.PageNames.LOGIN_PAGE
+import java.io.IOException
 
 @Composable
 fun RegisterPage(navController: NavController) {
@@ -31,11 +40,10 @@ fun RegisterPage(navController: NavController) {
     var confirmPassword by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     var canNavigate by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
-
-
-
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -45,12 +53,7 @@ fun RegisterPage(navController: NavController) {
             ) {
                 IconButton(onClick = {
                     if (canNavigate) {
-                        coroutineScope.launch {
-                            canNavigate = false
-                            navController.navigate("login")
-                            delay(500) // задержка в 500 мс перед следующим нажатием
-                            canNavigate = true
-                        }
+                        moveToPage(coroutineScope, navController, LOGIN_PAGE.pageName)
                     }
 
                 }) {
@@ -76,6 +79,15 @@ fun RegisterPage(navController: NavController) {
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage ?: "",
+                    color = Color.Red,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
 
             OutlinedTextField(
                 value = email,
@@ -122,7 +134,30 @@ fun RegisterPage(navController: NavController) {
 
             Button(
                 onClick = {
-                    // Handle sign up
+                    if (password != confirmPassword) {
+                        errorMessage = "Passwords do not match"
+                        return@Button
+                    }
+                    errorMessage = null
+                    isLoading = true
+                    val client = OkHttpClient()
+
+                    val request = sendRegisterRequest(email, password)
+                    client.newCall(request).enqueue(object : Callback {
+                        override fun onFailure(call: Call, e: IOException) {
+                            isLoading = false
+                            errorMessage = "Network error: Please try again later."
+                        }
+
+                        override fun onResponse(call: Call, response: Response) {
+                            isLoading = false
+                            if (response.isSuccessful) {
+                                moveToPage(coroutineScope, navController, LOGIN_PAGE.pageName)
+                            } else {
+                                errorMessage = "Registration failed: ${response.code}"
+                            }
+                        }
+                    })
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -130,8 +165,30 @@ fun RegisterPage(navController: NavController) {
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(Color.Red)
             ) {
-                Text("Sign up", fontSize = 20.sp, color = Color.White)
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White)
+                } else {
+                    Text("Sign up", fontSize = 20.sp, color = Color.White)
+                }
             }
         }
     }
 }
+
+private fun sendRegisterRequest(email: String, password: String): Request {
+    val json = """
+        {
+            "username": "$email",
+            "password": "$password"
+        }
+    """.trimIndent()
+
+    val requestBody = json
+        .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+    return Request.Builder()
+        .url("http://51.250.103.29:8080/api/auth/register")
+        .post(requestBody)
+        .build()
+}
+
+

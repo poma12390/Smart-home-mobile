@@ -28,9 +28,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Call
@@ -42,6 +40,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
+import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
+import se.ifmo.ru.smartapp.ui.pages.PageNames.REGISTER_PAGE
+import se.ifmo.ru.smartapp.ui.pages.PageNames.MAIN_PAGE
 import java.io.IOException
 
 
@@ -104,7 +105,7 @@ fun LoginPage(navController: NavController) {
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        sendRequest(username, password)
+                        sendLoginRequest(username, password)
                     })
                 )
 
@@ -112,7 +113,7 @@ fun LoginPage(navController: NavController) {
                     onClick = {
                         errorMessage = null
                         isLoading = true
-                        val request = sendRequest(username, password)
+                        val request = sendLoginRequest(username, password)
 
                         client.newCall(request).enqueue(object : Callback {
                             override fun onFailure(call: Call, e: IOException) {
@@ -131,7 +132,7 @@ fun LoginPage(navController: NavController) {
                                         saveTokenToCache(context, token)
                                         if (canNavigate) {
                                             canNavigate = false
-                                            moveToPage(coroutineScope, navController, "main")
+                                            moveToPage(coroutineScope, navController, MAIN_PAGE.pageName)
                                             canNavigate = true
                                         }
                                     } catch (e: JSONException) {
@@ -173,7 +174,7 @@ fun LoginPage(navController: NavController) {
                     TextButton(onClick = {
                         if (canNavigate) {
                             canNavigate = false
-                            moveToPage(coroutineScope, navController, "register")
+                            moveToPage(coroutineScope, navController, REGISTER_PAGE.pageName)
                             canNavigate = true
                         }
                     }) {
@@ -185,7 +186,7 @@ fun LoginPage(navController: NavController) {
     }
 }
 
-fun sendRequest(username: String, password: String): Request {
+private fun sendLoginRequest(username: String, password: String): Request {
     val json = """
                             {
                                 "username": "$username",
@@ -199,13 +200,6 @@ fun sendRequest(username: String, password: String): Request {
         .url("http://51.250.103.29:8080/api/auth/login")
         .post(requestBody)
         .build()
-}
-
-fun moveToPage(coroutineScope: CoroutineScope, navController: NavController, pageName: String) {
-    coroutineScope.launch {
-        navController.navigate(pageName)
-        delay(500) // задержка в 500 мс перед следующим нажатием
-    }
 }
 
 fun saveTokenToCache(context: Context, token: String) {

@@ -1,7 +1,6 @@
 package se.ifmo.ru.smartapp.ui.pages
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,14 +28,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.IOException
 
 
@@ -47,6 +52,8 @@ fun LoginPage(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val client = OkHttpClient()
     val context = LocalContext.current
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
@@ -58,23 +65,30 @@ fun LoginPage(navController: NavController) {
                 modifier = Modifier.padding(top = 100.dp)
             )
 
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage ?: "",
+                    color = Color.Red,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+
             // Login form
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-
                 Text(
                     "Login Account",
                     fontSize = 26.sp,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
-                Text("Hello, hi, Whasap, bye", fontSize = 16.sp, color = Color.Gray)
 
                 OutlinedTextField(
-                    value = username, // Используйте переменную состояния
-                    onValueChange = { username = it }, // Обновляйте переменную состояния
+                    value = username,
+                    onValueChange = { username = it },
                     label = { Text("Email Address") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -82,57 +96,66 @@ fun LoginPage(navController: NavController) {
                 )
 
                 OutlinedTextField(
-                    value = password, // Используйте переменную состояния
-                    onValueChange = { password = it }, // Обновляйте переменную состояния
+                    value = password,
+                    onValueChange = { password = it },
                     label = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        // Handle done action
+                        sendRequest(username, password)
                     })
                 )
 
-
                 Button(
                     onClick = {
-                        Log.d("LoginActivity", "Sign In button clicked. Username: $username")
+                        errorMessage = null
                         isLoading = true
-                        val client = OkHttpClient()
-                        val requestBody = FormBody.Builder()
-                            .add("username", username)
-                            .add("password", password)
-                            .build()
-                        val request = Request.Builder()
-                            .url("http://51.250.103.29:8080/api/auth/login")
-                            .post(requestBody)
-                            .build()
+                        val request = sendRequest(username, password)
 
                         client.newCall(request).enqueue(object : Callback {
                             override fun onFailure(call: Call, e: IOException) {
                                 isLoading = false
-                                Log.e("LoginActivity", "Network call failed", e)
-                                // Показываем Toast в UI потоке
-                                // Обновите UI в главном потоке
+                                errorMessage = "Network error: Please try again later."
                             }
 
                             override fun onResponse(call: Call, response: Response) {
                                 isLoading = false
-                                if (response.isSuccessful) {
-                                    Log.d("LoginActivity", "Network call successful")
-                                    // Предполагаем, что токен приходит в формате JSON { "token": "your_token_here" }
-                                    // Обновите UI в главном потоке
+                                val body =
+                                    response.body?.string() // Получаем тело ответа и преобразуем в строку
+
+                                if (response.isSuccessful && body != null) {
+                                    try {
+                                        val token = JSONObject(body).getString("token")
+                                        saveTokenToCache(context, token)
+                                        if (canNavigate) {
+                                            canNavigate = false
+                                            moveToPage(coroutineScope, navController, "main")
+                                            canNavigate = true
+                                        }
+                                    } catch (e: JSONException) {
+                                        errorMessage = "Failed to parse response"
+                                    }
+                                } else if (body != null) {
+                                    errorMessage = try {
+                                        JSONObject(body).getString("error")
+                                    } catch (e: JSONException) {
+                                        "Failed to parse error message"
+                                    }
                                 } else {
-                                    Log.e("LoginActivity", "Login failed: ${response.code}")
-                                    // Показываем Toast в UI потоке
-                                    // Обновите UI в главном потоке
+                                    errorMessage = "Unexpected error: ${response.code}"
+                                }
+
+                                coroutineScope.launch {
+                                    withContext(Dispatchers.Main) {
+                                        // Обновите UI в главном потоке
+                                    }
                                 }
                             }
+
                         })
-                    },
-                    enabled = !isLoading,
-                    // ... остальные параметры кнопки
+                    }
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White)
@@ -149,12 +172,9 @@ fun LoginPage(navController: NavController) {
                 } else {
                     TextButton(onClick = {
                         if (canNavigate) {
-                            coroutineScope.launch {
-                                canNavigate = false
-                                navController.navigate("register")
-                                delay(500) // задержка в 500 мс перед следующим нажатием
-                                canNavigate = true
-                            }
+                            canNavigate = false
+                            moveToPage(coroutineScope, navController, "register")
+                            canNavigate = true
                         }
                     }) {
                         Text("Don't have an account? Join Us", color = Color.Gray)
@@ -165,7 +185,33 @@ fun LoginPage(navController: NavController) {
     }
 }
 
-fun saveTokenToCache(context: Context, token: String) {
-    // Здесь используйте DataStore или SharedPreferences для сохранения токена
+fun sendRequest(username: String, password: String): Request {
+    val json = """
+                            {
+                                "username": "$username",
+                                "password": "$password"
+                            }
+                        """.trimIndent()
+
+    val requestBody = json
+        .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
+    return Request.Builder()
+        .url("http://51.250.103.29:8080/api/auth/login")
+        .post(requestBody)
+        .build()
 }
 
+fun moveToPage(coroutineScope: CoroutineScope, navController: NavController, pageName: String) {
+    coroutineScope.launch {
+        navController.navigate(pageName)
+        delay(500) // задержка в 500 мс перед следующим нажатием
+    }
+}
+
+fun saveTokenToCache(context: Context, token: String) {
+    val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+    with(sharedPref.edit()) {
+        putString("auth_token", token)
+        apply()
+    }
+}

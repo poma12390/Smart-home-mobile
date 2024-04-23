@@ -23,47 +23,62 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.livedata.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import okhttp3.Call
-import androidx.compose.runtime.livedata.*
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import se.ifmo.ru.smartapp.R
-import se.ifmo.ru.smartapp.ui.data.Device
 import se.ifmo.ru.smartapp.ui.data.Room
 import java.io.IOException
+
+
+data class Switch(
+    val id: Long,
+    val name: String,
+    val type: String, // Считаем, что тип ограничен заранее определенными значениями "power", "lock" и т.д.
+    val enabled: Boolean
+)
+
+private fun parseSwitches(jsonArray: JSONArray): List<Switch> {
+    val switches = mutableListOf<Switch>()
+    for (i in 0 until jsonArray.length()) {
+        val jsonObject = jsonArray.getJSONObject(i)
+        val switch = Switch(
+            id = jsonObject.getLong("id"),
+            name = jsonObject.getString("name"),
+            type = jsonObject.getString("type"),
+            enabled = jsonObject.getBoolean("enabled")
+        )
+        switches.add(switch)
+    }
+    return switches
+}
 
 
 class MainPageViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
@@ -75,10 +90,13 @@ class MainPageViewModelFactory(private val application: Application) : ViewModel
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
 class MainPageViewModel(application: Application) : AndroidViewModel(application) {
     private val client = OkHttpClient()
     private val _rooms = MutableLiveData<List<Room>>(emptyList())
     val rooms: LiveData<List<Room>> = _rooms
+    private val _switches = MutableLiveData<List<Switch>>(emptyList())
+    val switches: LiveData<List<Switch>> = _switches
 
     // Загрузка токена из кеша
     private val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
@@ -123,7 +141,37 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
             }
         })
     }
+    fun fetchHomeState() {
+        val request = Request.Builder()
+            .url("http://51.250.103.29:8080/api/rooms/home/state")
+            .header("Authorization", "Bearer $token")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Обработка ошибки запроса
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    response.body?.string()?.let { responseBody ->
+                        try {
+                            val jsonObject = JSONObject(responseBody)
+                            val switchesList = parseSwitches(jsonObject.getJSONArray("switches"))
+                            _switches.postValue(switchesList)
+                        } catch (e: JSONException) {
+                            // Обработка ошибки парсинга JSON
+                        }
+                    }
+                } else {
+                    // Обработка ошибки HTTP
+                }
+            }
+        })
+    }
 }
+
+
 
 @Composable
 fun MainPage(navController: NavController) {
@@ -135,16 +183,19 @@ fun MainPage(navController: NavController) {
     // Получение ViewModel
     val viewModel: MainPageViewModel = viewModel(factory = factory)
     val rooms by viewModel.rooms.observeAsState(initial = emptyList())
+    val switches by viewModel.switches.observeAsState(initial = emptyList())
 
     LaunchedEffect(Unit) {
         viewModel.fetchRooms()
+        viewModel.fetchHomeState()
+
     }
     // Здесь должен быть код для выполнения HTTP-запроса и обновления списка комнат
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Column {
             TopSection()
-            HomeSection()
+            HomeSection(switches)
             RoomsSection(rooms)
         }
     }
@@ -170,27 +221,18 @@ fun TopSection() {
 }
 
 @Composable
-fun HomeSection() {
-    // Реализуйте логику включения/выключения устройств по необходимости
-    val devices = listOf(
-        Device("Front Door", "Open", Icons.Default.Home),
-        Device("Wifi", "On", Icons.Default.CheckCircle),
-        Device("Lights", "Off", Icons.Default.Star)
-    )
+fun HomeSection(switches: List<Switch>) {
     Column {
-        Text(
-            "Home",
-        )
+        Text("Home", style = MaterialTheme.typography.displayMedium)
         LazyRow(
             contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(devices) { device ->
-                DeviceItem(device)
+            items(switches) { switch ->
+                DeviceItem(switch)
             }
             item {
-                // Кнопка для добавления нового устройства
-                DeviceItem(Device("Add", "", Icons.Default.Add), isAddButton = true)
+                AddDeviceItem() // Кнопка для добавления нового устройства
             }
         }
     }
@@ -220,7 +262,7 @@ fun RoomsSection(rooms: List<Room>) {
 }
 
 @Composable
-fun DeviceItem(device: Device, isAddButton: Boolean = false) {
+fun DeviceItem(switch: Switch) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -228,19 +270,24 @@ fun DeviceItem(device: Device, isAddButton: Boolean = false) {
             .width(100.dp)
             .height(100.dp)
             .background(
-                color = if (isAddButton) Color.LightGray else MaterialTheme.colorScheme.background,
+                color = if (switch.enabled) Color(0xFF76FF03) else Color(0xFFBDBDBD),
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable { /* обработчик нажатия */ }
+            .clickable { /* TODO: обработчик нажатия */ }
     ) {
         Icon(
-            imageVector = device.icon,
-            contentDescription = device.name,
-            modifier = Modifier.size(48.dp)
+            imageVector = if (switch.type == "power") Icons.Default.Star else Icons.Default.Lock,
+            contentDescription = switch.name,
+            tint = Color.White,
+            modifier = Modifier
+                .size(48.dp)
+                .padding(top = 16.dp)
         )
         Text(
-            text = device.name,
-            textAlign = TextAlign.Center
+            text = switch.name,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp)
         )
     }
 }
@@ -277,5 +324,19 @@ fun AddRoomItem() {
             .clickable { /* обработчик нажатия */ }
     ) {
         Icon(Icons.Default.Add, contentDescription = "Add Room")
+    }
+}
+
+@Composable
+fun AddDeviceItem() {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .padding(8.dp)
+            .size(100.dp)
+            .background(Color.LightGray, RoundedCornerShape(8.dp))
+            .clickable { /* handle click */ }
+    ) {
+        Icon(Icons.Default.Add, contentDescription = "Add Device", modifier = Modifier.size(48.dp))
     }
 }

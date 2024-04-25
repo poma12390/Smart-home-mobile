@@ -1,5 +1,6 @@
 package se.ifmo.ru.smartapp.ui.pages
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +34,9 @@ import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 import se.ifmo.ru.smartapp.ui.pages.PageNames.LOGIN_PAGE
 import java.io.IOException
 
+class MainActivity : ComponentActivity() {
+
+}
 @Composable
 fun RegisterPage(navController: NavController) {
     var email by remember { mutableStateOf("") }

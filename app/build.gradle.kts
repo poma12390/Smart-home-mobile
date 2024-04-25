@@ -50,6 +50,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.appcompat)
     runtimeOnly("androidx.compose.runtime:runtime:1.6.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.1")
     implementation(libs.androidx.core.ktx)

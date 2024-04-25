@@ -7,7 +7,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class PageUtils {
-
     companion object{
         fun moveToPage(coroutineScope: CoroutineScope, navController: NavController, pageName: String) {
             coroutineScope.launch {

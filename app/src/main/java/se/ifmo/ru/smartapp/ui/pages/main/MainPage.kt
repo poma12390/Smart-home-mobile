@@ -1,18 +1,6 @@
 package se.ifmo.ru.smartapp.ui.pages.main
 
-import android.Manifest
 import android.app.Application
-import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
-import android.os.Bundle
-import android.util.Log
-import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,17 +38,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
+import org.json.JSONObject
+import se.ifmo.ru.smartapp.MainActivity
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
+import se.ifmo.ru.smartapp.ui.data.WeatherData
+import java.net.URL
+
 
 
 @Composable
-public fun MainPageContent(navController: NavController) {
+fun MainPageContent(navController: NavController) {
 
     // Получение Application контекста
     val application = LocalContext.current.applicationContext as Application
@@ -91,8 +81,8 @@ public fun MainPageContent(navController: NavController) {
 
 @Composable
 fun TopSection() {
+    val weatherData = MainActivity.weatherData
     // Подставьте фактическую погоду
-    val weather = "28°C"
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -101,7 +91,7 @@ fun TopSection() {
     ) {
         Text("Today's Weather")
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(weather)
+            Text(weatherData?.degree?.toString() ?: "not available")
         }
         // Подставьте фактическое изображение пользователя
 
@@ -228,6 +218,3 @@ fun AddDeviceItem() {
         Icon(Icons.Default.Add, contentDescription = "Add Device", modifier = Modifier.size(48.dp))
     }
 }
-
-
-

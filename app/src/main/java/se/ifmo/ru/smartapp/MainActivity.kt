@@ -21,21 +21,27 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.json.JSONObject
 import se.ifmo.ru.smartapp.ui.data.WeatherData
 import se.ifmo.ru.smartapp.ui.pages.LoginPage
 import se.ifmo.ru.smartapp.ui.pages.RegisterPage
 import se.ifmo.ru.smartapp.ui.pages.main.MainPageContent
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
 
 class MainActivity : AppCompatActivity(), LocationListener {
-    companion object{
-        var weatherData : WeatherData? = null
+    companion object {
+        var weatherData: WeatherData? = null
     }
+
     private lateinit var locationManager: LocationManager
     private val locationPermissionCode = 2
+    private val client = OkHttpClient()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val isLoggedIn = checkIfUserLoggedIn()
@@ -57,50 +63,81 @@ class MainActivity : AppCompatActivity(), LocationListener {
 
     private fun getLocation() {
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), locationPermissionCode)
+        if ((ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED)
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                locationPermissionCode
+            )
         }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5f, this)
     }
+
     override fun onLocationChanged(location: Location) {
         lifecycleScope.launch {
+            Log.i(
+                "Current location",
+                location.latitude.toString() + " " + location.longitude.toString()
+            )
             weatherData = fetchWeather(location.latitude, location.longitude)
-            Log.i("Current location", location.latitude.toString() + " " + location.longitude.toString())
         }
     }
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == locationPermissionCode) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show()
-            }
-            else {
+            } else {
                 Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
     private fun checkIfUserLoggedIn(): Boolean {
         // Тут может быть логика проверки состояния сессии пользователя
         return false
     }
-    private suspend fun fetchWeather(lat: Double, lon: Double): WeatherData = withContext(Dispatchers.IO) {
+
+    private suspend fun fetchWeather(lat: Double, lon: Double): WeatherData? = withContext(Dispatchers.IO) {
         val apiKey = "07bae985b8db46f8c13059ba4005fa92"
         val url = "https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric"
 
-        val connection = URL(url).openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-        connection.connect()
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
 
-        if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-            throw RuntimeException("Failed : HTTP error code : ${connection.responseCode}")
-        } else {
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            val json = JSONObject(response)
-            val temp = json.getJSONObject("main").getDouble("temp")
-            return@withContext WeatherData(degree = temp)
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w("Failed : HTTP error code", response.code.toString())
+                    return@withContext null
+                } else {
+                    val responseBody = response.body?.string()
+                    if (responseBody != null) {
+                        val json = JSONObject(responseBody)
+                        val temp = json.getJSONObject("main").getDouble("temp")
+                        Log.i("Current temp", temp.toString())
+                        return@withContext WeatherData(degree = temp)
+                    } else {
+                        return@withContext null
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("HTTP request failed", e.toString())
+            return@withContext null
         }
     }
-
 
 }

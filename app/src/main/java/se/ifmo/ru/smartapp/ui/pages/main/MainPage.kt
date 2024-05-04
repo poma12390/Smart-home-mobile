@@ -1,6 +1,7 @@
 package se.ifmo.ru.smartapp.ui.pages.main
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,7 +49,6 @@ import se.ifmo.ru.smartapp.ui.data.WeatherData
 import java.net.URL
 
 
-
 @Composable
 fun MainPageContent(navController: NavController) {
 
@@ -64,7 +64,6 @@ fun MainPageContent(navController: NavController) {
     LaunchedEffect(Unit) {
         viewModel.fetchRooms()
         viewModel.fetchHomeState()
-
     }
     // Здесь должен быть код для выполнения HTTP-запроса и обновления списка комнат
 
@@ -76,7 +75,6 @@ fun MainPageContent(navController: NavController) {
         }
     }
 }
-
 
 
 @Composable
@@ -118,6 +116,8 @@ fun HomeSection(switches: List<Switch>) {
 
 @Composable
 fun RoomsSection(rooms: List<Room>) {
+    Log.i("rooms", rooms.toString())
+    val filteredRooms = rooms.filter { room -> room.name != "home" } // Фильтруем комнаты
     Column {
         Text(
             "Rooms",
@@ -128,8 +128,8 @@ fun RoomsSection(rooms: List<Room>) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(rooms) { room ->
-                RoomItem(room)
+            items(filteredRooms) { room ->
+                    RoomItem(room)
             }
             item {
                 // Кнопка для добавления новой комнаты
@@ -172,6 +172,7 @@ fun DeviceItem(switch: Switch) {
 
 @Composable
 fun RoomItem(room: Room) {
+    Log.i("room drawing", "start drawing " + room.name)
     val icon = when (room.type) {
         "Living Room" -> Icons.Default // Иконка для гостиной
         "Dining Room" -> Icons.Default // Иконка для столовой

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import org.json.JSONObject
 import se.ifmo.ru.smartapp.MainActivity
+import se.ifmo.ru.smartapp.exceptions.LoginException
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.WeatherData
@@ -60,17 +65,24 @@ fun MainPageContent(navController: NavController) {
     val viewModel: MainPageViewModel = viewModel(factory = factory)
     val rooms by viewModel.rooms.observeAsState(initial = emptyList())
     val switches by viewModel.switches.observeAsState(initial = emptyList())
+    val weatherData by MainActivity.weatherData.observeAsState()
+    var homeStateId: Long = 0
 
     LaunchedEffect(Unit) {
-        viewModel.fetchRooms()
-        viewModel.fetchHomeState()
+        try {
+            viewModel.fetchRooms()
+            homeStateId = viewModel.fetchHomeState()
+        }catch (ex: LoginException){
+            moveToPage(this, navController, "login")
+        }
+
     }
     // Здесь должен быть код для выполнения HTTP-запроса и обновления списка комнат
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Column {
-            TopSection()
-            HomeSection(switches)
+            TopSection(weatherData)
+            HomeSection(switches, homeStateId)
             RoomsSection(rooms)
         }
     }
@@ -78,8 +90,7 @@ fun MainPageContent(navController: NavController) {
 
 
 @Composable
-fun TopSection() {
-    val weatherData = MainActivity.weatherData
+fun TopSection(weatherData: WeatherData?) {
     // Подставьте фактическую погоду
     Row(
         modifier = Modifier
@@ -97,7 +108,9 @@ fun TopSection() {
 }
 
 @Composable
-fun HomeSection(switches: List<Switch>) {
+fun HomeSection(switches: List<Switch>, homeStateId: Long) {
+    val filteredSwitches = switches.filter { switch -> switch.stateId <= homeStateId }
+
     Column {
         Text("Home", style = MaterialTheme.typography.displayMedium)
         LazyRow(
@@ -105,7 +118,7 @@ fun HomeSection(switches: List<Switch>) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(switches) { switch ->
-                DeviceItem(switch)
+                DeviceItem(switch, homeStateId)
             }
             item {
                 AddDeviceItem() // Кнопка для добавления нового устройства
@@ -129,7 +142,7 @@ fun RoomsSection(rooms: List<Room>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(filteredRooms) { room ->
-                    RoomItem(room)
+                RoomItem(room)
             }
             item {
                 // Кнопка для добавления новой комнаты
@@ -140,7 +153,8 @@ fun RoomsSection(rooms: List<Room>) {
 }
 
 @Composable
-fun DeviceItem(switch: Switch) {
+fun DeviceItem(switch: Switch, homeStateId: Long) {
+    Log.i("cur home stateId", homeStateId.toString())
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier

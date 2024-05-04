@@ -14,11 +14,13 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import se.ifmo.ru.smartapp.exceptions.LoginException
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.getRoomStateIdById
 import se.ifmo.ru.smartapp.ui.data.getSwitchStateIdById
 import se.ifmo.ru.smartapp.ui.data.hasSwitchWithId
+import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import java.io.IOException
 
 class MainPageViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,22 +30,44 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
     private val _switches = MutableLiveData<List<Switch>>(emptyList())
     val switches: LiveData<List<Switch>> = _switches
 
-
     // Загрузка токена из кеша
     private val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     private val token = sharedPref.getString("auth_token", "") ?: ""
 
 
-    fun addSyncRoom(rooms: List<Room>) {
+    fun addSyncRooms(rooms: List<Room>) {
         if (rooms.isEmpty()) return
-        val size = _rooms.value?.size ?: 0
-        val currentRooms = _rooms.value ?: listOf()
-        val newRooms = currentRooms + rooms  // Складываем старый список с новым
-        _rooms.postValue(newRooms)
-        Log.i("adding", "wait to room sync")
-        while (size == _rooms.value!!.size) {
+        synchronized(_rooms) {
+            val size = _rooms.value?.size
+            rooms.forEach { room ->
+                Log.i("adding rooms", room.name)
+            }
+            val currentRooms = _rooms.value ?: emptyList()
+            val updatedRooms = currentRooms + rooms
+            _rooms.postValue(updatedRooms)
+
+            while (_rooms.value!!.size == size) {
+
+            }
+            Log.i("adding ${_rooms.value!!.size - size!!}rooms complete", _rooms.value!!.toString())
         }
-        Log.i("adding", "success add sync room")
+    }
+
+    fun addSyncSwitches(switches: List<Switch>) {
+        if (switches.isEmpty()) return
+        val size = _switches.value?.size
+        synchronized(_switches) {
+            switches.forEach { switch ->
+                Log.i("adding rooms", switch.name)
+            }
+            val currentSwitches = _switches.value ?: emptyList()
+            val updatedSwitches = currentSwitches + switches
+            _switches.postValue(updatedSwitches)
+            while (_switches.value!!.size == size) {
+
+            }
+            Log.i("adding switches complete", _switches.value!!.toString())
+        }
     }
 
     // Функция для выполнения запроса к API для получения комнат
@@ -75,19 +99,21 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                                 )
                                 roomsList.add(room)
                             }
-                            addSyncRoom(roomsList)
+                            addSyncRooms(roomsList)
                         } catch (e: JSONException) {
                             // Обработка ошибки парсинга JSON
                         }
                     }
                 } else {
-                    // Обработка ошибки HTTP
+                    sharedPref.edit().remove("auth_token").apply()
+                    throw LoginException()
                 }
             }
         })
     }
 
-    fun fetchHomeState() {
+    fun fetchHomeState(): Long {
+        var homeStateId: Long = 0
         val request = Request.Builder()
             .url("http://51.250.103.29:8080/api/rooms/home/state")
             .header("Authorization", "Bearer $token")
@@ -103,7 +129,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                     response.body?.string()?.let { responseBody ->
                         try {
                             val jsonObject = JSONObject(responseBody)
-                            addSyncRoom(
+                            addSyncRooms(
                                 listOf(
                                     Room(
                                         0,
@@ -113,17 +139,20 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                                     )
                                 )
                             )
+                            homeStateId = jsonObject.getLong("stateId")
                             val switchesList = parseSwitches(0, jsonObject.getJSONArray("switches"))
-                            _switches.postValue(switchesList)
+                            addSyncSwitches(switchesList)
                         } catch (e: JSONException) {
                             // Обработка ошибки парсинга JSON
                         }
                     }
                 } else {
-                    // Обработка ошибки HTTP
+                    sharedPref.edit().remove("auth_token").apply()
+                    throw LoginException()
                 }
             }
         })
+        return homeStateId
     }
 
     private fun parseSwitches(roomId: Long, jsonArray: JSONArray): List<Switch> {

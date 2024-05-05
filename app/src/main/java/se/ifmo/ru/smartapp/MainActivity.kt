@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
     }
 
     private fun checkIfUserLoggedIn(): Boolean {
+        Log.i("token", token)
         return token.isNotEmpty()
     }
 

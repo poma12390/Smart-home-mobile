@@ -8,8 +8,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONException
@@ -29,6 +31,8 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
     val rooms: LiveData<List<Room>> = _rooms
     private val _switches = MutableLiveData<List<Switch>>(emptyList())
     val switches: LiveData<List<Switch>> = _switches
+    private val _homeStateId = MutableLiveData<Long>(0)
+    val homeStateId: LiveData<Long> = _homeStateId
 
     // Загрузка токена из кеша
     private val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
@@ -50,6 +54,20 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
 
             }
             Log.i("adding ${_rooms.value!!.size - size!!}rooms complete", _rooms.value!!.toString())
+        }
+    }
+
+    fun setSyncHomeStateId(stateId: Long) {
+        if (_homeStateId.value == null || stateId == _homeStateId.value) return
+        synchronized(_homeStateId) {
+            val prev = _homeStateId.value
+            Log.i("setting home state id to", stateId.toString())
+            _homeStateId.postValue(stateId)
+            while (_homeStateId.value == prev) {
+
+            }
+            Log.i("set homeStateId to", _homeStateId.value.toString())
+
         }
     }
 
@@ -112,10 +130,9 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
         })
     }
 
-    fun fetchHomeState(): Long {
-        var homeStateId: Long = 0
+    fun fetchHomeState() {
         val request = Request.Builder()
-            .url("http://51.250.103.29:8080/api/rooms/home/state")
+            .url("http://51.250.103.29:8080/api/rooms/home")
             .header("Authorization", "Bearer $token")
             .build()
 
@@ -132,50 +149,100 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                             addSyncRooms(
                                 listOf(
                                     Room(
-                                        0,
-                                        "home",
-                                        "home",
+                                        jsonObject.getLong("id"),
+                                        jsonObject.getString("name"),
+                                        jsonObject.getString("type"),
                                         jsonObject.getLong("stateId")
                                     )
                                 )
                             )
-                            homeStateId = jsonObject.getLong("stateId")
-                            val switchesList = parseSwitches(0, jsonObject.getJSONArray("switches"))
-                            addSyncSwitches(switchesList)
+                            if(jsonObject.getLong("stateId") > PageUtils.getStateId()){
+                                PageUtils.setStateId(jsonObject.getLong("stateId"))
+                            }
+
+                            Log.i(
+                                "${jsonObject.getString("name")} stateId ",
+                                jsonObject.getLong("stateId").toString()
+                            )
+                            setSyncHomeStateId(jsonObject.getLong("stateId"))
+                            val switchesList = parseSwitches(
+                                jsonObject.getLong("id"),
+                                jsonObject.getJSONArray("switches")
+                            )
+                            Log.i("active switches on page", switchesList.toString())
+                            _switches.postValue(switchesList)
                         } catch (e: JSONException) {
                             // Обработка ошибки парсинга JSON
                         }
                     }
-                } else {
-                    sharedPref.edit().remove("auth_token").apply()
+                } else if(response.code == 504){
+                    // Не удалось получить данные с сервера
+                }
+                else {
                     throw LoginException()
                 }
             }
         })
-        return homeStateId
     }
 
     private fun parseSwitches(roomId: Long, jsonArray: JSONArray): List<Switch> {
         val switches = mutableListOf<Switch>()
-        val firstRequest = !hasSwitchWithId(roomId, _switches)
+        val roomStateId = getRoomStateIdById(roomId, _rooms)
+        val currentSwitches = _switches.value ?: listOf()
+
         for (i in 0 until jsonArray.length()) {
             val jsonObject = jsonArray.getJSONObject(i)
-            val switch = Switch(
+            val newSwitch = Switch(
                 id = jsonObject.getLong("id"),
                 name = jsonObject.getString("name"),
                 type = jsonObject.getString("type"),
                 enabled = jsonObject.getBoolean("enabled"),
-                stateId = if (firstRequest) {
-                    Log.i("roomId", roomId.toString())
-                    Log.i("arr", _rooms.value!!.toString())
-                    getRoomStateIdById(roomId, _rooms)!!
-                } else {
-                    getSwitchStateIdById(jsonObject.getLong("id"), _switches)!!
-                },
+                stateId = roomStateId,
                 roomId = roomId
             )
-            switches.add(switch)
+
+
+            val existingSwitch = currentSwitches.find { it.id == newSwitch.id }
+            if (existingSwitch != null && existingSwitch.stateId > roomStateId) {
+                // Если есть существующий переключатель с большим stateId, используем его
+                switches.add(existingSwitch)
+            } else {
+                // В противном случае используем новый переключатель из JSON
+                switches.add(newSwitch)
+            }
         }
+
+
+        // Обновляем LiveData с новым списком переключателей
         return switches
     }
+
+    fun updateSwitchState(newState: Boolean, switchId: Long, newStateId: Long) {
+        val client = OkHttpClient()
+        val mediaType = "application/json".toMediaType()
+        val body = ("{" +
+                "\"enabled\": \"$newState\"" +
+                "\"stateId\": \"$newStateId\"" +
+                "}").toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url("http://51.250.103.29:8080/api/switches/$switchId")
+            .patch(body)
+            .addHeader("Authorization", "Bearer $token")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Обработка ошибки запроса
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful){
+                    Log.i("Change switch $switchId to ", "new stateId = $newStateId")
+                }
+            }
+        })
+    }
+
 }

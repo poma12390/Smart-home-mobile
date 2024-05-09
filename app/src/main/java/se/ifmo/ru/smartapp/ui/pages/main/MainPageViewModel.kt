@@ -6,6 +6,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.navigation.NavController
+import kotlinx.coroutines.CoroutineScope
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -89,7 +91,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
     }
 
     // Функция для выполнения запроса к API для получения комнат
-    fun fetchRooms() {
+    fun fetchRooms(coroutineScope: CoroutineScope, navController: NavController, application: Application) {
         val request = Request.Builder()
             .url("http://51.250.103.29:8080/api/rooms")
             .header("Authorization", "Bearer $token")
@@ -123,14 +125,19 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                         }
                     }
                 } else {
-                    sharedPref.edit().remove("auth_token").apply()
-                    throw LoginException()
+                    Log.e("open main page fail", "ex: ")
+                    val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                    with(sharedPref.edit()) {
+                        remove("auth_token")
+                        apply()
+                    }
+                    PageUtils.moveToPage(coroutineScope, navController, "login")
                 }
             }
         })
     }
 
-    fun fetchHomeState() {
+    fun fetchHomeState(coroutineScope: CoroutineScope, navController: NavController, application: Application) {
         val request = Request.Builder()
             .url("http://51.250.103.29:8080/api/rooms/home")
             .header("Authorization", "Bearer $token")
@@ -179,7 +186,13 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                     // Не удалось получить данные с сервера
                 }
                 else {
-                    throw LoginException()
+                    Log.e("open home room fail", "ex: ")
+                    val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                    with(sharedPref.edit()) {
+                        remove("auth_token")
+                        apply()
+                    }
+                    PageUtils.moveToPage(coroutineScope, navController, "login")
                 }
             }
         })

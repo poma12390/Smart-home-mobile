@@ -53,6 +53,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.MainActivity
+import se.ifmo.ru.smartapp.exceptions.LoginException
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.WeatherData
@@ -77,23 +78,15 @@ fun MainPageContent(navController: NavController) {
 
 
     LaunchedEffect(Unit) {
-        val handler = CoroutineExceptionHandler { _, exception ->
-            Log.e("open main page fail", "ex: $exception")
-            val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            with(sharedPref.edit()) {
-                remove("auth_token")
-                apply()
-            }
-            moveToPage(this, navController, "login")
-        }
+
         coroutineScope {
-            launch(handler) {
-                viewModel.fetchRooms()
+            launch() {
+                viewModel.fetchRooms(this, navController, application)
             }
-            launch(handler) {
+            launch() {
                 // Запуск fetchHomeState каждые 5 секунд
                 while (isActive) {
-                    viewModel.fetchHomeState()
+                    viewModel.fetchHomeState(this, navController, application)
                     delay(5000)
                 }
             }
@@ -204,7 +197,7 @@ fun DeviceItem(switch: Switch, homeStateId: Long, viewModel: MainPageViewModel) 
             .clickable {
                 if (homeStateId >= switch.stateId) {
                     toggleSwitch()
-                }else{
+                } else {
                     Log.w("blocked", "switch " + switch.name)
                 }
             }

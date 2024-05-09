@@ -32,6 +32,7 @@ import se.ifmo.ru.smartapp.ui.data.WeatherData
 import se.ifmo.ru.smartapp.ui.pages.LoginPage
 import se.ifmo.ru.smartapp.ui.pages.RegisterPage
 import se.ifmo.ru.smartapp.ui.pages.main.MainPageContent
+import se.ifmo.ru.smartapp.ui.pages.room.RoomPageContent
 
 
 class MainActivity : AppCompatActivity(), LocationListener {
@@ -64,6 +65,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
             composable("login") { LoginPage(navController) }
             composable("register") { RegisterPage(navController) }
             composable("main") { MainPageContent(navController) }
+            composable("room"){ RoomPageContent(navController)}
         }
     }
 

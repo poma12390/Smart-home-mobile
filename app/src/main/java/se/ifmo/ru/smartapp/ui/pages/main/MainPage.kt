@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -59,6 +60,8 @@ import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.WeatherData
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
+import se.ifmo.ru.smartapp.ui.pages.room.RoomPageViewModel
+import se.ifmo.ru.smartapp.ui.pages.room.RoomPageViewModelFactory
 
 
 @Composable
@@ -100,7 +103,7 @@ fun MainPageContent(navController: NavController) {
         Column {
             TopSection(weatherData, navController)
             HomeSection(switches, homeStateId, viewModel)
-            RoomsSection(rooms)
+            RoomsSection(rooms, navController)
         }
     }
 }
@@ -155,7 +158,7 @@ fun HomeSection(switches: List<Switch>, homeStateId: Long, viewModel: MainPageVi
 }
 
 @Composable
-fun RoomsSection(rooms: List<Room>) {
+fun RoomsSection(rooms: List<Room>, navController: NavController) {
     Log.i("rooms", rooms.toString())
     val filteredRooms = rooms.filter { room -> room.name != "Home" }
         .filter { room -> room.name != "home" } // Фильтруем комнаты
@@ -170,7 +173,7 @@ fun RoomsSection(rooms: List<Room>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(filteredRooms) { room ->
-                RoomItem(room)
+                RoomItem(room, navController)
             }
         }
     }
@@ -220,13 +223,14 @@ fun DeviceItem(switch: Switch, homeStateId: Long, viewModel: MainPageViewModel) 
 }
 
 @Composable
-fun RoomItem(room: Room) {
-    Log.i("room drawing", "start drawing " + room.name)
+fun RoomItem(room: Room, navController: NavController) {
     val icon = when (room.type) {
-        "Living Room" -> Icons.Default // Иконка для гостиной
-        "Dining Room" -> Icons.Default // Иконка для столовой
-        else -> Icons.Default // Иконка по умолчанию
+        "Living Room" -> Icons.Default // Example icon, replace with your actual icons
+        "Dining Room" -> Icons.Default
+        else -> Icons.Default
     }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Box(
         contentAlignment = Alignment.Center,
@@ -234,8 +238,15 @@ fun RoomItem(room: Room) {
             .padding(8.dp)
             .aspectRatio(1f)
             .background(color = Color.LightGray, shape = RoundedCornerShape(8.dp))
+            .clickable {
+                coroutineScope.launch {
+                    saveRoomToCache(context, room.id)
+                    moveToPage(coroutineScope, navController, "room")
+                }
+            }
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Icon can be placed here if needed
             Text(room.name, textAlign = TextAlign.Center)
         }
     }
@@ -267,4 +278,13 @@ fun AddDeviceItem() {
     ) {
         Icon(Icons.Default.Add, contentDescription = "Add Device", modifier = Modifier.size(48.dp))
     }
+}
+
+fun saveRoomToCache(context: Context, roomId: Long) {
+    val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+    with(sharedPref.edit()) {
+        putLong("cur_room", roomId)
+        apply()
+    }
+    Log.i("saved roomId", roomId.toString())
 }

@@ -98,7 +98,9 @@ class RoomPageViewModel(application: Application) : AndroidViewModel(application
                                         enabled = getBoolean("enabled"),
                                         value = getDouble("value").toLong(),
                                         stateId = stateId,
-                                        roomId = roomId
+                                        roomId = roomId,
+                                        minValue = 0, //TODO fix
+                                        maxValue = 100
                                     )
                                 )
                             }

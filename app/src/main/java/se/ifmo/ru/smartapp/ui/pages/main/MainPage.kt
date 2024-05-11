@@ -160,7 +160,7 @@ fun HomeSection(switches: List<Switch>, homeStateId: Long, viewModel: MainPageVi
 @Composable
 fun RoomsSection(rooms: List<Room>, navController: NavController) {
     Log.i("rooms", rooms.toString())
-    val filteredRooms = rooms.filter { room -> room.name != "Home" }
+    val filteredRooms = rooms.filter { room -> room.name != "Home" && room.name != "Дом" }
         .filter { room -> room.name != "home" } // Фильтруем комнаты
     Column {
         Text(

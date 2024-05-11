@@ -8,3 +8,6 @@ fun getRoomStateIdById(id: Long, rooms: MutableLiveData<List<Room>>): Long {
     return rooms.value?.find { it.id == id }?.stateId!!
 }
 
+fun roomExist(id: Long, rooms: MutableLiveData<List<Room>>): Boolean {
+    return rooms.value?.any { room -> room.id == id } ?: false
+}

@@ -6,10 +6,25 @@ import android.text.Layout
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -20,6 +35,7 @@ import androidx.navigation.NavController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.coroutineScope
@@ -64,88 +80,97 @@ fun RoomControlPanel(
     sensors: List<Sensor>,
     rangeSwitches: List<RangeSwitch>
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        switches.forEach { switch ->
-            DeviceSwitch(switch)
+        items(switches.size) { index ->
+            DeviceSwitchCard(switches[index])
         }
-        sensors.forEach { sensor ->
-            DeviceSensor(sensor)
+        items(sensors.size) { index ->
+            DeviceSensorCard(sensors[index])
         }
-        rangeSwitches.forEach { rangeSwitch ->
-            DeviceRangeSwitch(rangeSwitch)
+        items(rangeSwitches.size) { index ->
+            DeviceRangeSwitchCard(rangeSwitches[index])
         }
     }
 }
 
 @Composable
-fun DeviceSwitch(switch: Switch) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+fun DeviceSwitchCard(switch: Switch) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-    ) {
-        Text(
-            text = switch.name,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp),
-            fontSize = 16.sp,
-        )
-        androidx.compose.material3.Switch(
-            checked = switch.enabled,
-            onCheckedChange = { /* Your toggle logic here */ },
-            modifier = Modifier.padding(end = 16.dp)
-        )
+            .height(120.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(Icons.Filled.Done, contentDescription = "Switch")
+            Text(text = switch.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            androidx.compose.material3.Switch(
+                checked = switch.enabled,
+                onCheckedChange = { /* logic here */ }
+            )
+        }
     }
 }
 
 @Composable
-fun DeviceSensor(sensor: Sensor) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+fun DeviceSensorCard(sensor: Sensor) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-    ) {
-        Text(
-            text = "${sensor.name}: ${sensor.value}",
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp),
-            fontSize = 16.sp
-        )
+            .height(120.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(Icons.Filled.ExitToApp, contentDescription = "Sensor")
+            Text(text = sensor.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(text = "${sensor.value}", fontSize = 16.sp)
+        }
     }
 }
 
 @Composable
-fun DeviceRangeSwitch(rangeSwitch: RangeSwitch) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .background(color = Color.White, shape = RoundedCornerShape(8.dp))
+            .height(160.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
-        Text(
-            text = rangeSwitch.name,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp),
-            fontSize = 16.sp,
-            color = Color.Black
-        )
-        Slider(
-            value = rangeSwitch.value.toFloat(),
-            onValueChange = { /* Slider logic here */ },
-            valueRange = 0f..100f, // Set according to your requirements
-            modifier = Modifier.padding(end = 16.dp)
-        )
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(Icons.Filled.ArrowBack, contentDescription = "Range")
+            Text(text = rangeSwitch.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Slider(
+                value = rangeSwitch.value.toFloat(),
+                onValueChange = { newValue ->
+                    // update logic here
+                },
+                valueRange = rangeSwitch.minValue.toFloat()..rangeSwitch.maxValue.toFloat(),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary
+                )
+            )
+        }
     }
 }

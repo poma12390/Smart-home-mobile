@@ -7,5 +7,7 @@ data class RangeSwitch(
     var enabled: Boolean,
     var value: Long,
     var stateId: Long,
+    val minValue: Long,
+    val maxValue: Long,
     val roomId: Long
 )

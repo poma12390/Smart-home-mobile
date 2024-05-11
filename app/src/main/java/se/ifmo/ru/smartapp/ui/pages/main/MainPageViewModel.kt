@@ -18,12 +18,10 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import se.ifmo.ru.smartapp.exceptions.LoginException
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.getRoomStateIdById
-import se.ifmo.ru.smartapp.ui.data.getSwitchStateIdById
-import se.ifmo.ru.smartapp.ui.data.hasSwitchWithId
+import se.ifmo.ru.smartapp.ui.data.roomExist
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import java.io.IOException
 
@@ -42,14 +40,15 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
 
 
     fun addSyncRooms(rooms: List<Room>) {
-        if (rooms.isEmpty()) return
+        val filteredRooms = rooms.filter { !roomExist(it.id, _rooms) }
+        if (filteredRooms.isEmpty()) return
         synchronized(_rooms) {
             val size = _rooms.value?.size
-            rooms.forEach { room ->
+            filteredRooms.forEach { room ->
                 Log.i("adding rooms", room.name)
             }
             val currentRooms = _rooms.value ?: emptyList()
-            val updatedRooms = currentRooms + rooms
+            val updatedRooms = currentRooms + filteredRooms
             _rooms.postValue(updatedRooms)
 
             while (_rooms.value!!.size == size) {
@@ -91,7 +90,11 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
     }
 
     // Функция для выполнения запроса к API для получения комнат
-    fun fetchRooms(coroutineScope: CoroutineScope, navController: NavController, application: Application) {
+    fun fetchRooms(
+        coroutineScope: CoroutineScope,
+        navController: NavController,
+        application: Application
+    ) {
         val request = Request.Builder()
             .url("http://51.250.103.29:8080/api/rooms")
             .header("Authorization", "Bearer $token")
@@ -126,7 +129,8 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                     }
                 } else {
                     Log.e("open main page fail", "ex: ")
-                    val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                    val sharedPref =
+                        application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
                     with(sharedPref.edit()) {
                         remove("auth_token")
                         apply()
@@ -137,7 +141,11 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
         })
     }
 
-    fun fetchHomeState(coroutineScope: CoroutineScope, navController: NavController, application: Application) {
+    fun fetchHomeState(
+        coroutineScope: CoroutineScope,
+        navController: NavController,
+        application: Application
+    ) {
         val request = Request.Builder()
             .url("http://51.250.103.29:8080/api/rooms/home")
             .header("Authorization", "Bearer $token")
@@ -153,17 +161,22 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                     response.body?.string()?.let { responseBody ->
                         try {
                             val jsonObject = JSONObject(responseBody)
-                            addSyncRooms(
-                                listOf(
-                                    Room(
-                                        jsonObject.getLong("id"),
-                                        jsonObject.getString("name"),
-                                        jsonObject.getString("type"),
-                                        jsonObject.getLong("stateId")
-                                    )
+                            if (!roomExist(
+                                    jsonObject.getLong("id"),
+                                    _rooms
                                 )
                             )
-                            if(jsonObject.getLong("stateId") > PageUtils.getStateId()){
+                                addSyncRooms(
+                                    listOf(
+                                        Room(
+                                            jsonObject.getLong("id"),
+                                            jsonObject.getString("name"),
+                                            jsonObject.getString("type"),
+                                            jsonObject.getLong("stateId")
+                                        )
+                                    )
+                                )
+                            if (jsonObject.getLong("stateId") > PageUtils.getStateId()) {
                                 PageUtils.setStateId(jsonObject.getLong("stateId"))
                             }
 
@@ -182,12 +195,12 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                             // Обработка ошибки парсинга JSON
                         }
                     }
-                } else if(response.code == 504){
+                } else if (response.code == 504) {
                     // Не удалось получить данные с сервера
-                }
-                else {
+                } else {
                     Log.e("open home room fail", "ex: ")
-                    val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                    val sharedPref =
+                        application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
                     with(sharedPref.edit()) {
                         remove("auth_token")
                         apply()
@@ -251,7 +264,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
             }
 
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful){
+                if (response.isSuccessful) {
                     Log.i("Change switch $switchId to ", "new stateId = $newStateId")
                 }
             }

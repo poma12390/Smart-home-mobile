@@ -2,42 +2,45 @@ package se.ifmo.ru.smartapp.ui.pages.room
 
 import android.app.Application
 import android.content.Context
-import android.text.Layout
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CardElevation
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.ui.data.RangeSwitch
@@ -74,40 +77,66 @@ fun RoomPageContent(navController: NavController) {
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomControlPanel(
     switches: List<Switch>,
     sensors: List<Sensor>,
     rangeSwitches: List<RangeSwitch>
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(switches.size) { index ->
-            DeviceSwitchCard(switches[index])
-        }
-        items(sensors.size) { index ->
-            DeviceSensorCard(sensors[index])
-        }
-        items(rangeSwitches.size) { index ->
-            DeviceRangeSwitchCard(rangeSwitches[index])
+    Column {
+        TopAppBar(
+            title = { Text("Living Room") },
+            navigationIcon = {
+                IconButton(onClick = { /* navigate back logic */ }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            colors = TopAppBarDefaults.smallTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = Color.Black,
+            ),
+        )
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(switches.size) { index ->
+                DeviceSwitchCard(switches[index])
+            }
+            items(sensors.size) { index ->
+                DeviceSensorCard(sensors[index])
+            }
+            items(rangeSwitches.size) { index ->
+                DeviceRangeSwitchCard(rangeSwitches[index])
+            }
         }
     }
 }
 
 @Composable
+fun deviceCardBackground() = Modifier
+    .background(
+        Brush.horizontalGradient(
+            colors = listOf(Color(0xFFE0E0E0), Color(0xFFF5F5F5))
+        )
+    )
+    .padding(2.dp)
+    .background(Color(0xFFFAFAD2)) // Beige background
+
+@Composable
 fun DeviceSwitchCard(switch: Switch) {
     Card(
-        modifier = Modifier
+        modifier = deviceCardBackground()
             .fillMaxWidth()
             .height(120.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
-        )    ) {
+        )
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
@@ -125,13 +154,14 @@ fun DeviceSwitchCard(switch: Switch) {
 @Composable
 fun DeviceSensorCard(sensor: Sensor) {
     Card(
-        modifier = Modifier
+        modifier = deviceCardBackground()
             .fillMaxWidth()
             .height(120.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
-        )    ) {
+        )
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
@@ -146,7 +176,7 @@ fun DeviceSensorCard(sensor: Sensor) {
 @Composable
 fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch) {
     Card(
-        modifier = Modifier
+        modifier = deviceCardBackground()
             .fillMaxWidth()
             .height(160.dp),
         shape = RoundedCornerShape(12.dp),

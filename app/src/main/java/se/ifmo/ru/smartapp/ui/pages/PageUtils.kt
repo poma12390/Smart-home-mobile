@@ -29,6 +29,7 @@ class PageUtils {
         fun moveToPage(coroutineScope: CoroutineScope, navController: NavController, pageName: String) {
             coroutineScope.launch {
                 navController.navigate(pageName)
+                curStateId = 1
                 delay(500)
             }
         }

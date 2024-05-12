@@ -5,7 +5,7 @@ data class RangeSwitch(
     val name: String,
     val type: String,
     var enabled: Boolean,
-    var value: Long,
+    var value: Double,
     var stateId: Long,
     val minValue: Long,
     val maxValue: Long,

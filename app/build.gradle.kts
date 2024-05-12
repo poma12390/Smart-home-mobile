@@ -74,4 +74,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation (libs.converter.jackson)
+    implementation (libs.jackson.databind)
+    implementation (libs.jackson.core)
+    implementation (libs.jackson.annotations)
 }

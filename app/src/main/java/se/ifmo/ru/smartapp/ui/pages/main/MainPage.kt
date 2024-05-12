@@ -55,6 +55,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.MainActivity
 import se.ifmo.ru.smartapp.exceptions.LoginException
+import se.ifmo.ru.smartapp.network.SwitchUpdater
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.WeatherData
@@ -182,10 +183,11 @@ fun RoomsSection(rooms: List<Room>, navController: NavController) {
 @Composable
 fun DeviceItem(switch: Switch, homeStateId: Long, viewModel: MainPageViewModel) {
     var isEnabled by remember { mutableStateOf(switch.enabled) }
+    val updater = PageUtils.getSwitchUpdater()
     fun toggleSwitch() {
         isEnabled = !isEnabled
         switch.stateId = PageUtils.getNewStateId()
-        viewModel.updateSwitchState(isEnabled, switch.id, switch.stateId)
+        updater.updateSwitchState(isEnabled, switch.id, switch.stateId)
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -30,6 +30,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import se.ifmo.ru.smartapp.ui.data.WeatherData
 import se.ifmo.ru.smartapp.ui.pages.LoginPage
+import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import se.ifmo.ru.smartapp.ui.pages.RegisterPage
 import se.ifmo.ru.smartapp.ui.pages.main.MainPageContent
 import se.ifmo.ru.smartapp.ui.pages.room.RoomPageContent
@@ -44,11 +45,12 @@ class MainActivity : AppCompatActivity(), LocationListener {
     private lateinit var locationManager: LocationManager
     private val locationPermissionCode = 2
     private val client = OkHttpClient()
-    private lateinit var sharedPref : SharedPreferences
-    private lateinit var token : String
+    private lateinit var sharedPref: SharedPreferences
+    private lateinit var token: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PageUtils.init(application)
         sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
         token = sharedPref.getString("auth_token", "") ?: ""
         val isLoggedIn = checkIfUserLoggedIn()
@@ -65,7 +67,7 @@ class MainActivity : AppCompatActivity(), LocationListener {
             composable("login") { LoginPage(navController) }
             composable("register") { RegisterPage(navController) }
             composable("main") { MainPageContent(navController) }
-            composable("room"){ RoomPageContent(navController)}
+            composable("room") { RoomPageContent(navController) }
         }
     }
 
@@ -91,7 +93,10 @@ class MainActivity : AppCompatActivity(), LocationListener {
                 "Current location",
                 location.latitude.toString() + " " + location.longitude.toString()
             )
-            _weatherData.postValue(fetchWeather(location.latitude, location.longitude))
+            val weather = fetchWeather(location.latitude, location.longitude)
+            if (weather.degree > -200) {
+                _weatherData.postValue(weather)
+            }
         }
     }
 
@@ -116,36 +121,38 @@ class MainActivity : AppCompatActivity(), LocationListener {
         return token.isNotEmpty()
     }
 
-    private suspend fun fetchWeather(lat: Double, lon: Double): WeatherData = withContext(Dispatchers.IO) {
-        val apiKey = "07bae985b8db46f8c13059ba4005fa92"
-        val url = "https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric"
+    private suspend fun fetchWeather(lat: Double, lon: Double): WeatherData =
+        withContext(Dispatchers.IO) {
+            val apiKey = "07bae985b8db46f8c13059ba4005fa92"
+            val url =
+                "https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric"
 
-        val request = Request.Builder()
-            .url(url)
-            .get()
-            .build()
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .build()
 
-        try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.w("Failed : HTTP error code", response.code.toString())
-                    return@withContext WeatherData(-222.0)
-                } else {
-                    val responseBody = response.body?.string()
-                    if (responseBody != null) {
-                        val json = JSONObject(responseBody)
-                        val temp = json.getJSONObject("main").getDouble("temp")
-                        Log.i("Current temp", temp.toString())
-                        return@withContext WeatherData(degree = temp)
-                    } else {
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Log.w("Failed : HTTP error code", response.code.toString())
                         return@withContext WeatherData(-222.0)
+                    } else {
+                        val responseBody = response.body?.string()
+                        if (responseBody != null) {
+                            val json = JSONObject(responseBody)
+                            val temp = json.getJSONObject("main").getDouble("temp")
+                            Log.i("Current temp", temp.toString())
+                            return@withContext WeatherData(degree = temp)
+                        } else {
+                            return@withContext WeatherData(-222.0)
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e("HTTP request failed", e.toString())
+                return@withContext WeatherData(-222.0)
             }
-        } catch (e: Exception) {
-            Log.e("HTTP request failed", e.toString())
-            return@withContext WeatherData(-222.0)
         }
-    }
 
 }

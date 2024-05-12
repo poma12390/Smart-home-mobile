@@ -18,6 +18,7 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import se.ifmo.ru.smartapp.network.responseParser.ResponseParser.Companion.parseSwitches
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.data.getRoomStateIdById
@@ -153,7 +154,14 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                // Обработка ошибки запроса
+                Log.e("request", "ex: ")
+                val sharedPref =
+                    application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                with(sharedPref.edit()) {
+                    remove("auth_token")
+                    apply()
+                }
+                PageUtils.moveToPage(coroutineScope, navController, "login")
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -187,7 +195,9 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                             setSyncHomeStateId(jsonObject.getLong("stateId"))
                             val switchesList = parseSwitches(
                                 jsonObject.getLong("id"),
-                                jsonObject.getJSONArray("switches")
+                                jsonObject.getJSONArray("switches"),
+                                _rooms,
+                                _switches
                             )
                             Log.i("active switches on page", switchesList.toString())
                             _switches.postValue(switchesList)
@@ -211,64 +221,5 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
         })
     }
 
-    private fun parseSwitches(roomId: Long, jsonArray: JSONArray): List<Switch> {
-        val switches = mutableListOf<Switch>()
-        val roomStateId = getRoomStateIdById(roomId, _rooms)
-        val currentSwitches = _switches.value ?: listOf()
-
-        for (i in 0 until jsonArray.length()) {
-            val jsonObject = jsonArray.getJSONObject(i)
-            val newSwitch = Switch(
-                id = jsonObject.getLong("id"),
-                name = jsonObject.getString("name"),
-                type = jsonObject.getString("type"),
-                enabled = jsonObject.getBoolean("enabled"),
-                stateId = roomStateId,
-                roomId = roomId
-            )
-
-
-            val existingSwitch = currentSwitches.find { it.id == newSwitch.id }
-            if (existingSwitch != null && existingSwitch.stateId > roomStateId) {
-                // Если есть существующий переключатель с большим stateId, используем его
-                switches.add(existingSwitch)
-            } else {
-                // В противном случае используем новый переключатель из JSON
-                switches.add(newSwitch)
-            }
-        }
-
-
-        // Обновляем LiveData с новым списком переключателей
-        return switches
-    }
-
-    fun updateSwitchState(newState: Boolean, switchId: Long, newStateId: Long) {
-        val client = OkHttpClient()
-        val mediaType = "application/json".toMediaType()
-        val body = ("{" +
-                "\"enabled\": \"$newState\"" +
-                "\"stateId\": \"$newStateId\"" +
-                "}").toRequestBody(mediaType)
-
-        val request = Request.Builder()
-            .url("http://51.250.103.29:8080/api/switches/$switchId")
-            .patch(body)
-            .addHeader("Authorization", "Bearer $token")
-            .addHeader("Content-Type", "application/json")
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Обработка ошибки запроса
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    Log.i("Change switch $switchId to ", "new stateId = $newStateId")
-                }
-            }
-        })
-    }
 
 }

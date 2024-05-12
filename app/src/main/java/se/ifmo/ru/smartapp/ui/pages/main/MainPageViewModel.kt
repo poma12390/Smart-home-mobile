@@ -185,7 +185,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                                     )
                                 )
                             if (jsonObject.getLong("stateId") > PageUtils.getStateId()) {
-                                PageUtils.setStateId(jsonObject.getLong("stateId"))
+                                PageUtils.setStateId(jsonObject.getLong("stateId") + 1)
                             }
 
                             Log.i(

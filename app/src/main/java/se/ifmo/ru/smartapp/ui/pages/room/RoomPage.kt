@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -208,14 +209,15 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
     }
 }
 
-
 @Composable
 fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
     var isEnabled by remember { mutableStateOf(rangeSwitch.enabled) }
+    var sliderValue by remember { mutableDoubleStateOf(rangeSwitch.value) }
     val updater = PageUtils.getSwitchUpdater()
+
     fun toggleSlider(value: Double) {
         if (roomStateId >= rangeSwitch.stateId) {
-            isEnabled = !isEnabled
+            Log.i("room state $roomStateId", "switch state ${rangeSwitch.stateId}")
             rangeSwitch.stateId = PageUtils.getNewStateId()
             updater.updateRangeSwitchState(value, isEnabled, rangeSwitch.id, rangeSwitch.stateId)
         } else {
@@ -225,6 +227,25 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
             )
         }
     }
+
+    fun toggleSwitch() {
+        if (roomStateId >= rangeSwitch.stateId) {
+            isEnabled = !isEnabled
+            rangeSwitch.stateId = PageUtils.getNewStateId()
+            updater.updateRangeSwitchState(
+                rangeSwitch.value,
+                isEnabled,
+                rangeSwitch.id,
+                rangeSwitch.stateId
+            )
+        } else {
+            Log.w(
+                "Action blocked",
+                "Switch ${rangeSwitch.name} cannot be toggled due to state restrictions"
+            )
+        }
+    }
+
     Card(
         modifier = deviceCardBackground()
             .fillMaxWidth()
@@ -248,7 +269,11 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
                 Icon(Icons.Default.Build, contentDescription = "Device Icon")
                 androidx.compose.material3.Switch(
                     checked = isEnabled,
-                    onCheckedChange = { isEnabled = it },
+                    onCheckedChange = {
+                        if(roomStateId >= rangeSwitch.stateId){
+                            toggleSwitch()
+                        }
+                    },
                     thumbContent = {
                         Box(
                             modifier = Modifier
@@ -279,25 +304,27 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
                     .padding(horizontal = 25.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Текущее значение: ${rangeSwitch.value}",
+                    text = "Текущее значение: ${"%.1f".format(sliderValue)}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Slider(
-                    value = (Math.round(rangeSwitch.value * 10.0) / 10.0).toFloat(),
+                    value = sliderValue.toFloat(),
                     onValueChange = { newValue ->
-                        // Обновите значение в модели данных и добавьте здесь логику обновления
-                        if (isEnabled) {
-                            toggleSlider(newValue.toDouble())
+                        if (roomStateId >= rangeSwitch.stateId) sliderValue = newValue.toDouble()
+                    },
+                    onValueChangeFinished = {
+                        if (roomStateId >= rangeSwitch.stateId) {
+                            toggleSlider(sliderValue)
                         }
                     },
                     valueRange = rangeSwitch.minValue.toFloat()..rangeSwitch.maxValue.toFloat(),
-                    enabled = isEnabled,
+                    steps = ((rangeSwitch.maxValue - rangeSwitch.minValue) / 0.1).toInt() - 1,
+                    enabled = isEnabled && roomStateId >= rangeSwitch.stateId,
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
-
-                        )
+                    )
                 )
             }
         }

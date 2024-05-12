@@ -99,8 +99,8 @@ class RoomPageViewModel(application: Application) : AndroidViewModel(application
                                         value = getDouble("value"),
                                         stateId = stateId,
                                         roomId = roomId,
-                                        minValue = 0, //TODO fix
-                                        maxValue = 100
+                                        minValue = getDouble("minValue"),
+                                        maxValue = getDouble("maxValue")
                                     )
                                 )
                             }

@@ -12,6 +12,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import se.ifmo.ru.smartapp.ui.data.dto.UpdateRangeSwitchDto
 import se.ifmo.ru.smartapp.ui.data.dto.UpdateSwitchDto
 import java.io.IOException
 
@@ -54,15 +55,15 @@ class SwitchUpdater(
     fun updateRangeSwitchState(newValue: Double, newState: Boolean, switchId: Long, newStateId: Long) {
         val client = OkHttpClient()
         val mediaType = "application/json".toMediaType()
-        val body = ("{" +
-                "\"enabled\": \"$newState\"" +
-                "\"stateId\": \"$newStateId\"" +
-                "\"value\": \"$newValue\"" +
-                "}").toRequestBody(mediaType)
+        val mapper = ObjectMapper()
+        val updateSwitch = UpdateRangeSwitchDto(newStateId, newState, newValue)
+        val bodyString = mapper.writeValueAsString(
+            updateSwitch
+        )
 
         val request = Request.Builder()
-            .url("http://51.250.103.29:8080/api/switches/$switchId")
-            .patch(body)
+            .url("http://51.250.103.29:8080/api/rangeSwitches/$switchId")
+            .patch(bodyString.toRequestBody(mediaType))
             .addHeader("Authorization", "Bearer $token")
             .addHeader("Content-Type", "application/json")
             .build()

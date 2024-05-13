@@ -3,6 +3,7 @@ package se.ifmo.ru.smartapp.ui.pages.main
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -43,8 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -54,6 +60,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.MainActivity
+import se.ifmo.ru.smartapp.R
 import se.ifmo.ru.smartapp.exceptions.LoginException
 import se.ifmo.ru.smartapp.network.SwitchUpdater
 import se.ifmo.ru.smartapp.ui.data.Room
@@ -76,9 +83,10 @@ fun MainPageContent(navController: NavController) {
     val viewModel: MainPageViewModel = viewModel(factory = factory)
     val rooms by viewModel.rooms.observeAsState(initial = emptyList())
     val switches by viewModel.switches.observeAsState(initial = emptyList())
-    val weatherData by MainActivity.weatherData.observeAsState()
     val homeStateId by viewModel.homeStateId.observeAsState(initial = 0)
-
+    val weatherOutside by viewModel.weatherOutside.observeAsState(initial = -222.0)
+    val weatherInside by viewModel.weatherInside.observeAsState(initial = -222.0)
+    val electricity by viewModel.electricity.observeAsState(initial = -222.0)
 
 
     LaunchedEffect(Unit) {
@@ -91,6 +99,7 @@ fun MainPageContent(navController: NavController) {
                 // Запуск fetchHomeState каждые 5 секунд
                 while (isActive) {
                     viewModel.fetchHomeState(this, navController, application)
+                    viewModel.fetchOutsideState(this, navController, application)
                     delay(5000)
                 }
             }
@@ -102,7 +111,7 @@ fun MainPageContent(navController: NavController) {
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Column {
-            TopSection(weatherData, navController)
+            TopSection(weatherOutside, weatherInside, electricity, navController)
             HomeSection(switches, homeStateId, viewModel)
             RoomsSection(rooms, navController)
         }
@@ -111,7 +120,12 @@ fun MainPageContent(navController: NavController) {
 
 
 @Composable
-fun TopSection(weatherData: WeatherData?, navController: NavController) {
+fun TopSection(
+    weatherOutside: Double,
+    weatherInside: Double,
+    electricity: Double,
+    navController: NavController
+) {
     val sharedPref = LocalContext.current.applicationContext.getSharedPreferences(
         "AppPrefs",
         Context.MODE_PRIVATE
@@ -124,21 +138,58 @@ fun TopSection(weatherData: WeatherData?, navController: NavController) {
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Today's Weather")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(weatherData?.degree?.toString() ?: "not available")
+        Column {
+            Text("Weather", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Outside", color = Color.Gray)
+            Text(
+                text = if (weatherOutside < -200.0) "Loading" else "${weatherOutside}°C",
+                fontSize = 18.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Inside", color = Color.Gray)
+            Text(
+                text = if (weatherInside < -200.0) "Loading" else "${weatherInside}°C",
+                fontSize = 18.sp
+            )
         }
-        Button(onClick = {
-            with(sharedPref.edit()) {
-                remove("auth_token")
-                apply()
+
+        Column {
+            Text("Electricity", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Power", color = Color.Gray)
+            Text(
+                text = if (electricity < -200.0) "Loading" else "$electricity kW",
+                fontSize = 18.sp
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clickable {
+                with(sharedPref.edit()) {
+                    remove("auth_token")
+                    apply()
+                }
+                moveToPage(coroutineScope, navController, "login")
             }
-            moveToPage(coroutineScope, navController, "login")
-        }) {
-            Text("Logout")
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(Color(0xFFFFA726), shape = CircleShape)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground), // Замените на ваш ресурс
+                    contentDescription = "Account Image",
+                    modifier = Modifier.size(50.dp)
+                )
+            }
         }
     }
 }
+
+
 
 
 @Composable

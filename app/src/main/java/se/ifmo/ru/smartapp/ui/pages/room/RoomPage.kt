@@ -268,7 +268,7 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
             ) {
                 Icon(Icons.Default.Build, contentDescription = "Device Icon")
                 androidx.compose.material3.Switch(
-                    checked = isEnabled,
+                    checked =  isEnabled,
                     onCheckedChange = {
                         if(roomStateId >= rangeSwitch.stateId){
                             toggleSwitch()

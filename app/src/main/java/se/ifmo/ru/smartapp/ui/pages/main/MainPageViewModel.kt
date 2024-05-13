@@ -18,6 +18,7 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import se.ifmo.ru.smartapp.network.responseParser.ResponseParser.Companion.parseSensors
 import se.ifmo.ru.smartapp.network.responseParser.ResponseParser.Companion.parseSwitches
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
@@ -34,6 +35,12 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
     val switches: LiveData<List<Switch>> = _switches
     private val _homeStateId = MutableLiveData<Long>(0)
     val homeStateId: LiveData<Long> = _homeStateId
+    private val _weatherOutside = MutableLiveData<Double>()
+    val weatherOutside: LiveData<Double> = _weatherOutside
+    private val _weatherInside = MutableLiveData<Double>()
+    val weatherInside: LiveData<Double> = _weatherInside
+    private val _electricity = MutableLiveData<Double>()
+    val electricity: LiveData<Double> = _electricity
 
     // Загрузка токена из кеша
     private val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
@@ -199,6 +206,12 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
                                 _rooms,
                                 _switches
                             )
+
+                            parseSensors(
+                                jsonObject.getJSONArray("sensors"),
+                                _weatherInside,
+                                _electricity
+                            )
                             Log.i("active switches on page", switchesList.toString())
                             _switches.postValue(switchesList)
                         } catch (e: JSONException) {
@@ -221,5 +234,47 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
         })
     }
 
+    fun fetchOutsideState(
+        coroutineScope: CoroutineScope,
+        navController: NavController,
+        application: Application
+    ) {
+        val request = Request.Builder()
+            .url("http://51.250.103.29:8080/api/rooms/outside")
+            .header("Authorization", "Bearer $token")
+            .build()
 
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("request", "ex: ${e.message}")
+                val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                with(sharedPref.edit()) {
+                    remove("auth_token")
+                    apply()
+                }
+                PageUtils.moveToPage(coroutineScope, navController, "login")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    response.body?.let { responseBody ->
+                        val responseString = responseBody.string()
+                        val jsonResponse = JSONObject(responseString)
+                        val sensors = jsonResponse.getJSONArray("sensors")
+                        for (i in 0 until sensors.length()) {
+                            val sensor = sensors.getJSONObject(i)
+                            if (sensor.getString("type") == "temperature") {
+                                val temperature = sensor.getDouble("value")
+                                _weatherOutside.postValue(temperature)
+                                Log.i("weather outside", temperature.toString())
+                                break
+                            }
+                        }
+                    }
+                } else {
+                    Log.e("request", "Failed response")
+                }
+            }
+        })
+    }
 }

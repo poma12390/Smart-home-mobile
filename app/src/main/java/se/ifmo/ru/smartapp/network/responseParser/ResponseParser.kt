@@ -44,6 +44,24 @@ class ResponseParser {
             // Обновляем LiveData с новым списком переключателей
             return newSwitches
         }
+
+        fun parseSensors(
+            jsonArray: JSONArray,
+            weatherInside: MutableLiveData<Double>,
+            electricity: MutableLiveData<Double>
+        ) {
+            for (i in 0 until jsonArray.length()) {
+                val sensor = jsonArray.getJSONObject(i)
+                val type = sensor.getString("type")
+                val value = sensor.getDouble("value")
+
+                when (type) {
+                    "temperature" -> weatherInside.postValue(value)
+                    "power" -> electricity.postValue(value)
+                }
+            }
+        }
     }
+
 
 }

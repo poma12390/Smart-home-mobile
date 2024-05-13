@@ -342,7 +342,7 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
             .fillMaxWidth()
             .height(120.dp)
             .clickable {
-                saveSensorIdToCache(context, sensor.id)
+                saveSensorIdToCache(context, sensor.id, sensor.name)
                 moveToPage(scope, navController, "sensor")
             },
         shape = RoundedCornerShape(12.dp),
@@ -360,10 +360,12 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
     }
 }
 
-fun saveSensorIdToCache(context: Context, sensorId: Long) {
+fun saveSensorIdToCache(context: Context, sensorId: Long, sensorName: String) {
     val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     with(sharedPref.edit()) {
         putLong("cur_sensor", sensorId)
+        putString("cur_sensor_name", sensorName)
+
         apply()
     }
     Log.i("saved sensorId", sensorId.toString())

@@ -9,11 +9,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -31,8 +44,10 @@ import se.ifmo.ru.smartapp.ui.pages.sensor.CustomMarkerView
 import se.ifmo.ru.smartapp.ui.pages.sensor.SensorPageViewModel
 import se.ifmo.ru.smartapp.ui.pages.sensor.SensorPageViewModelFactory
 import se.ifmo.ru.smartapp.R
+import se.ifmo.ru.smartapp.ui.pages.PageUtils
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SensorPageContent(navController: NavController) {
     val application = LocalContext.current.applicationContext as Application
@@ -45,7 +60,10 @@ fun SensorPageContent(navController: NavController) {
     val lineEntries = xValues.zip(yValues).map { (x, y) -> Entry(x.toFloat(), y.toFloat()) }
     val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     // val sensorId = sharedPref.getLong("cur_sensor", 1)
-    val sensorId : Long = 2
+    val sensorId: Long = 2
+    val scope = rememberCoroutineScope()
+    val switchName = sharedPref.getString("cur_sensor_name", "")
+
 
     LaunchedEffect(Unit) {
 
@@ -63,20 +81,46 @@ fun SensorPageContent(navController: NavController) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.LightGray)
-            .padding(16.dp)
-    ) {
-        LineChartContainer(entries = lineEntries)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = switchName!!,
+                        textAlign = TextAlign.Center,
+                        fontSize = 20.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { PageUtils.moveToPage(scope, navController, "main") }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(
+                    containerColor = androidx.compose.ui.graphics.Color.White,
+                    titleContentColor = androidx.compose.ui.graphics.Color.LightGray,
+                ),
+            )
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(androidx.compose.ui.graphics.Color.LightGray)
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            LineChartContainer(entries = lineEntries)
+        }
     }
 }
 
 @Composable
-fun TopSection(){
+fun TopSection() {
 
 }
+
 @Composable
 fun LineChartContainer(entries: List<Entry>) {
     Box(

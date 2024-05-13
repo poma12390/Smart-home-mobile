@@ -25,7 +25,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -48,6 +51,9 @@ android {
     }
     buildToolsVersion = "34.0.0"
 }
+
+
+
 
 dependencies {
     implementation(libs.androidx.appcompat)
@@ -74,8 +80,15 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation (libs.converter.jackson)
-    implementation (libs.jackson.databind)
-    implementation (libs.jackson.core)
-    implementation (libs.jackson.annotations)
+    implementation(libs.converter.jackson)
+    implementation(libs.jackson.databind)
+    implementation(libs.jackson.core)
+    implementation(libs.jackson.annotations)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation(libs.ui)
+    implementation(libs.androidx.material)
+    implementation(libs.ui.tooling)
+    implementation(libs.androidx.lifecycle.runtime.ktx.v231)
+
+
 }

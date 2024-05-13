@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,7 +77,6 @@ fun RoomPageContent(navController: NavController) {
     val sensors by viewModel.sensors.observeAsState(initial = emptyList())
     val rangeSwitches by viewModel.rangeSwitches.observeAsState(initial = emptyList())
     val roomStateId by viewModel.roomStateId.observeAsState(initial = 0)
-    val context = LocalContext.current
     val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     val roomId = sharedPref.getLong("cur_room", 1)
     Log.i("opening room", roomId.toString())
@@ -136,7 +136,7 @@ fun RoomControlPanel(
                 DeviceSwitchCard(switches[index], roomStateId)
             }
             items(sensors.size) { index ->
-                DeviceSensorCard(sensors[index])
+                DeviceSensorCard(sensors[index], navController)
             }
             items(rangeSwitches.size) { index ->
                 DeviceRangeSwitchCard(rangeSwitches[index], roomStateId)
@@ -333,11 +333,18 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
 
 
 @Composable
-fun DeviceSensorCard(sensor: Sensor) {
+fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
     Card(
         modifier = deviceCardBackground()
             .fillMaxWidth()
-            .height(120.dp),
+            .height(120.dp)
+            .clickable {
+                saveSensorIdToCache(context, sensor.id)
+                moveToPage(scope, navController, "sensor")
+            },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
@@ -351,4 +358,13 @@ fun DeviceSensorCard(sensor: Sensor) {
             Text(text = "${sensor.value}°C", fontSize = 16.sp)
         }
     }
+}
+
+fun saveSensorIdToCache(context: Context, sensorId: Long) {
+    val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+    with(sharedPref.edit()) {
+        putLong("cur_sensor", sensorId)
+        apply()
+    }
+    Log.i("saved sensorId", sensorId.toString())
 }

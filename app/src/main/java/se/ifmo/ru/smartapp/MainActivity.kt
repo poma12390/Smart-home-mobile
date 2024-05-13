@@ -1,5 +1,6 @@
 package se.ifmo.ru.smartapp
 
+import SensorPageContent
 import android.Manifest
 import android.content.Context
 import android.content.SharedPreferences
@@ -68,6 +69,8 @@ class MainActivity : AppCompatActivity(), LocationListener {
             composable("register") { RegisterPage(navController) }
             composable("main") { MainPageContent(navController) }
             composable("room") { RoomPageContent(navController) }
+            composable("sensor") { SensorPageContent(navController) }
+
         }
     }
 

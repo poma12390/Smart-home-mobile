@@ -4,9 +4,12 @@ import android.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
@@ -59,19 +62,21 @@ fun SensorPageContent(navController: NavController) {
 
     val lineEntries = xValues.zip(yValues).map { (x, y) -> Entry(x.toFloat(), y.toFloat()) }
     val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+    val nHours = xValues.size
+    val minTemperature = yValues.minOrNull() ?: -222.0
+    val maxTemperature = yValues.maxOrNull() ?: -222.0
+    val currentTemperature = sharedPref.getFloat("cur_sensor_temperature", -222f)
     // val sensorId = sharedPref.getLong("cur_sensor", 1)
     val sensorId: Long = 2
     val scope = rememberCoroutineScope()
     val switchName = sharedPref.getString("cur_sensor_name", "")
 
-
     LaunchedEffect(Unit) {
-
         coroutineScope {
-            launch() {
+            launch {
                 viewModel.fetchOutsideState(this, navController, sensorId)
             }
-            launch() {
+            launch {
                 // Запуск fetchHomeState каждые 5 секунд
                 while (isActive) {
                     viewModel.fetchOutsideState(this, navController, 2)
@@ -85,21 +90,34 @@ fun SensorPageContent(navController: NavController) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = switchName!!,
-                        textAlign = TextAlign.Center,
-                        fontSize = 20.sp,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = switchName!!,
+                                textAlign = TextAlign.Center,
+                                fontSize = 20.sp,
+                                modifier = Modifier
+                                    .weight(6f)
+                                    .offset(x = (-10).dp) // Смещаем текст немного влево
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { PageUtils.moveToPage(scope, navController, "main") }) {
+                    IconButton(onClick = {
+                        PageUtils.moveToPage(scope, navController, "room")
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(
                     containerColor = androidx.compose.ui.graphics.Color.White,
-                    titleContentColor = androidx.compose.ui.graphics.Color.LightGray,
+                    titleContentColor = androidx.compose.ui.graphics.Color.Black,
                 ),
             )
         },
@@ -111,15 +129,49 @@ fun SensorPageContent(navController: NavController) {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            TemperatureInfoBlock(
+                currentTemperature = currentTemperature,
+                minTemperature = minTemperature,
+                maxTemperature = maxTemperature,
+                nHours = nHours
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             LineChartContainer(entries = lineEntries)
         }
     }
 }
 
 @Composable
-fun TopSection() {
+fun TemperatureInfoBlock(
+    currentTemperature: Float,
+    minTemperature: Double,
+    maxTemperature: Double,
+    nHours: Int
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(androidx.compose.ui.graphics.Color.White, shape = RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
 
+        Text(
+            text = if (currentTemperature < -200.0) "Loading" else "Current Temperature: $currentTemperature°C",
+            fontSize = 18.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (minTemperature < -200.0) "Loading" else "Min Temperature (last $nHours hours): $minTemperature°C",
+            fontSize = 18.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (maxTemperature < -200.0) "Loading" else "Min Temperature (last $nHours hours): $maxTemperature°C",
+            fontSize = 18.sp
+        )
+    }
 }
+
 
 @Composable
 fun LineChartContainer(entries: List<Entry>) {
@@ -132,7 +184,6 @@ fun LineChartContainer(entries: List<Entry>) {
         LineChartComponent(entries = entries)
     }
 }
-
 
 @Composable
 fun LineChartComponent(entries: List<Entry>) {

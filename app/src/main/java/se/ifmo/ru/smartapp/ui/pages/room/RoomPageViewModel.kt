@@ -59,7 +59,7 @@ class RoomPageViewModel(application: Application) : AndroidViewModel(application
                                         id = getLong("id"),
                                         name = getString("name"),
                                         type = getString("type"),
-                                        value = getDouble("value").toLong(),
+                                        value = getDouble("value"),
                                         stateId = stateId,
                                         roomId = roomId
                                     )

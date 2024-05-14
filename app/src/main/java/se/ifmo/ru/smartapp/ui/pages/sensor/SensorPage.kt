@@ -1,7 +1,13 @@
+package se.ifmo.ru.smartapp.ui.pages.sensor
+
 import android.app.Application
 import android.content.Context
 import android.graphics.Color
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,8 +32,18 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.consumeAllChanges
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -48,6 +64,7 @@ import se.ifmo.ru.smartapp.ui.pages.sensor.SensorPageViewModel
 import se.ifmo.ru.smartapp.ui.pages.sensor.SensorPageViewModelFactory
 import se.ifmo.ru.smartapp.R
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
+import kotlin.math.roundToInt
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +83,6 @@ fun SensorPageContent(navController: NavController) {
     val minTemperature = yValues.minOrNull() ?: -222.0
     val maxTemperature = yValues.maxOrNull() ?: -222.0
     val currentTemperature = sharedPref.getFloat("cur_sensor_temperature", -222f)
-    // val sensorId = sharedPref.getLong("cur_sensor", 1)
     val sensorId: Long = 2
     val scope = rememberCoroutineScope()
     val switchName = sharedPref.getString("cur_sensor_name", "")
@@ -77,7 +93,6 @@ fun SensorPageContent(navController: NavController) {
                 viewModel.fetchOutsideState(this, navController, sensorId)
             }
             launch {
-                // Запуск fetchHomeState каждые 5 секунд
                 while (isActive) {
                     viewModel.fetchOutsideState(this, navController, 2)
                     delay(5000)
@@ -86,6 +101,15 @@ fun SensorPageContent(navController: NavController) {
         }
     }
 
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
+    val temperatureInfoOffset = remember { mutableStateOf(Offset.Zero) }
+    val lineChartOffset = remember { mutableStateOf(Offset.Zero) }
+    val temperatureInfoSize = remember { mutableStateOf(IntSize.Zero) }
+    val lineChartSize = remember { mutableStateOf(IntSize.Zero) }
+
+    val density = LocalDensity.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -102,7 +126,7 @@ fun SensorPageContent(navController: NavController) {
                                 fontSize = 20.sp,
                                 modifier = Modifier
                                     .weight(6f)
-                                    .offset(x = (-10).dp) // Смещаем текст немного влево
+                                    .offset(x = (-10).dp)
                             )
                             Spacer(modifier = Modifier.weight(1f))
                         }
@@ -129,14 +153,52 @@ fun SensorPageContent(navController: NavController) {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            TemperatureInfoBlock(
-                currentTemperature = currentTemperature,
-                minTemperature = minTemperature,
-                maxTemperature = maxTemperature,
-                nHours = nHours
-            )
+            DraggableBlock(
+                offset = temperatureInfoOffset.value,
+                onDrag = { offset ->
+                    temperatureInfoOffset.value = offset
+                    preventOverlap(
+                        temperatureInfoOffset,
+                        temperatureInfoSize,
+                        lineChartOffset,
+                        lineChartSize,
+                        screenWidth,
+                        screenHeight,
+                        density
+                    )
+                },
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                onGloballyPositioned = { size -> temperatureInfoSize.value = size }
+            ) {
+                TemperatureInfoBlock(
+                    currentTemperature = currentTemperature,
+                    minTemperature = minTemperature,
+                    maxTemperature = maxTemperature,
+                    nHours = nHours
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
-            LineChartContainer(entries = lineEntries)
+            DraggableBlock(
+                offset = lineChartOffset.value,
+                onDrag = { offset ->
+                    lineChartOffset.value = offset
+                    preventOverlap(
+                        lineChartOffset,
+                        lineChartSize,
+                        temperatureInfoOffset,
+                        temperatureInfoSize,
+                        screenWidth,
+                        screenHeight,
+                        density
+                    )
+                },
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                onGloballyPositioned = { size -> lineChartSize.value = size }
+            ) {
+                LineChartContainer(entries = lineEntries)
+            }
         }
     }
 }
@@ -154,7 +216,6 @@ fun TemperatureInfoBlock(
             .background(androidx.compose.ui.graphics.Color.White, shape = RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
-
         Text(
             text = if (currentTemperature < -200.0) "Loading" else "Current Temperature: $currentTemperature°C",
             fontSize = 18.sp
@@ -166,12 +227,11 @@ fun TemperatureInfoBlock(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = if (maxTemperature < -200.0) "Loading" else "Min Temperature (last $nHours hours): $maxTemperature°C",
+            text = if (maxTemperature < -200.0) "Loading" else "Max Temperature (last $nHours hours): $maxTemperature°C",
             fontSize = 18.sp
         )
     }
 }
-
 
 @Composable
 fun LineChartContainer(entries: List<Entry>) {
@@ -196,7 +256,7 @@ fun LineChartComponent(entries: List<Entry>) {
         factory = { ctx ->
             LineChart(ctx).apply {
                 val dataSet = LineDataSet(entries, "Sensor Data").apply {
-                    color = Color.parseColor("#A020F0") // Фиолетовый цвет
+                    color = Color.parseColor("#A020F0")
                     setCircleColor(Color.WHITE)
                     circleHoleColor = Color.parseColor("#A020F0")
                     circleRadius = 4f
@@ -215,25 +275,25 @@ fun LineChartComponent(entries: List<Entry>) {
                 xAxis.apply {
                     position = XAxis.XAxisPosition.BOTTOM
                     granularity = 1f
-                    setDrawGridLines(true) // Включить вертикальные линии сетки
+                    setDrawGridLines(true)
                     gridColor = Color.LTGRAY
                     gridLineWidth = 0.5f
                 }
                 axisLeft.apply {
-                    granularity = 2f // Показать меньше меток на оси Y
-                    setDrawGridLines(true) // Включить горизонтальные линии сетки
+                    granularity = 2f
+                    setDrawGridLines(true)
                     gridColor = Color.LTGRAY
                     gridLineWidth = 0.5f
                 }
                 axisRight.isEnabled = false
-                setBackgroundColor(Color.WHITE) // Установить белый фон
-                setDrawGridBackground(false) // Отключить фоновую сетку
+                setBackgroundColor(Color.WHITE)
+                setDrawGridBackground(false)
                 setGridBackgroundColor(Color.WHITE)
             }
         },
         update = { chart ->
             val dataSet = LineDataSet(entries, "Sensor Data").apply {
-                color = Color.parseColor("#A020F0") // Фиолетовый цвет
+                color = Color.parseColor("#A020F0")
                 setCircleColor(Color.WHITE)
                 circleHoleColor = Color.parseColor("#A020F0")
                 circleRadius = 4f
@@ -250,3 +310,105 @@ fun LineChartComponent(entries: List<Entry>) {
         }
     )
 }
+
+@Composable
+fun DraggableBlock(
+    offset: Offset,
+    onDrag: (Offset) -> Unit,
+    screenWidth: Dp,
+    screenHeight: Dp,
+    onGloballyPositioned: (IntSize) -> Unit,
+    content: @Composable () -> Unit
+) {
+    var position by remember { mutableStateOf(offset) }
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
+
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(position.x.roundToInt(), position.y.roundToInt()) }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragEnd = {
+                        // Проверяем границы экрана и возвращаем блок, если он выходит за границы
+                        val screenWidthPx = with(density) { screenWidth.toPx() }
+                        val screenHeightPx = with(density) { screenHeight.toPx() }
+
+                        val newPosition = when {
+                            position.x < 0f -> position.copy(x = 0f)
+                            position.x + size.width > screenWidthPx -> position.copy(x = screenWidthPx - size.width)
+                            else -> position
+                        }.let {
+                            when {
+                                it.y < 0f -> it.copy(y = 0f)
+                                it.y + size.height > screenHeightPx -> it.copy(y = screenHeightPx - size.height)
+                                else -> it
+                            }
+                        }
+                        position = newPosition
+                        onDrag(newPosition)
+                    }
+                ) { change, dragAmount ->
+                    change.consumeAllChanges()
+                    val newPosition = position + Offset(dragAmount.x, dragAmount.y)
+                    position = newPosition
+                    onDrag(newPosition)
+                }
+            }
+            .onGloballyPositioned { coordinates ->
+                size = coordinates.size
+                onGloballyPositioned(size)
+            }
+    ) {
+        content()
+    }
+}
+
+fun preventOverlap(
+    offset1: MutableState<Offset>,
+    size1: MutableState<IntSize>,
+    offset2: MutableState<Offset>,
+    size2: MutableState<IntSize>,
+    screenWidth: Dp,
+    screenHeight: Dp,
+    density: Density
+) {
+    val screenWidthPx = with(density) { screenWidth.toPx() }
+    val screenHeightPx = with(density) { screenHeight.toPx() }
+
+    val overlapX = offset1.value.x < offset2.value.x + size2.value.width && offset1.value.x + size1.value.width > offset2.value.x
+    val overlapY = offset1.value.y < offset2.value.y + size2.value.height && offset1.value.y + size1.value.height > offset2.value.y
+
+    if (overlapX && overlapY) {
+        val newOffset1 = Offset(
+            x = (offset2.value.x + size2.value.width).coerceIn(0f, screenWidthPx - size1.value.width.toFloat()),
+            y = offset1.value.y
+        )
+
+        val newOffset2 = Offset(
+            x = offset2.value.x,
+            y = (offset1.value.y + size1.value.height).coerceIn(0f, screenHeightPx - size2.value.height.toFloat())
+        )
+
+        // Проверяем, чтобы новые позиции не выходили за верхнюю и нижнюю границы экрана
+        val correctedOffset1 = Offset(
+            x = newOffset1.x,
+            y = newOffset1.y.coerceIn(0f, screenHeightPx - size1.value.height.toFloat())
+        )
+
+        val correctedOffset2 = Offset(
+            x = newOffset2.x,
+            y = newOffset2.y.coerceIn(0f, screenHeightPx - size2.value.height.toFloat())
+        )
+
+        if (correctedOffset1.x < screenWidthPx && correctedOffset1.y < screenHeightPx) {
+            offset1.value = correctedOffset1
+        }
+
+        if (correctedOffset2.x < screenWidthPx && correctedOffset2.y < screenHeightPx) {
+            offset2.value = correctedOffset2
+        }
+    }
+}
+
+

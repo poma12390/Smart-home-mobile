@@ -1,6 +1,5 @@
 package se.ifmo.ru.smartapp
 
-import SensorPageContent
 import android.Manifest
 import android.content.Context
 import android.content.SharedPreferences
@@ -35,6 +34,7 @@ import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import se.ifmo.ru.smartapp.ui.pages.RegisterPage
 import se.ifmo.ru.smartapp.ui.pages.main.MainPageContent
 import se.ifmo.ru.smartapp.ui.pages.room.RoomPageContent
+import se.ifmo.ru.smartapp.ui.pages.sensor.SensorPageContent
 
 
 class MainActivity : AppCompatActivity(), LocationListener {

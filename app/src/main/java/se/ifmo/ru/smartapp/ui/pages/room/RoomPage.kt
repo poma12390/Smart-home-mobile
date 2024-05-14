@@ -10,19 +10,31 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Light
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Water
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,10 +59,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,6 +91,7 @@ fun RoomPageContent(navController: NavController) {
     val roomStateId by viewModel.roomStateId.observeAsState(initial = 0)
     val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     val roomId = sharedPref.getLong("cur_room", 1)
+    val roomName = sharedPref.getString("cur_room_name", "подвал")
     Log.i("opening room", roomId.toString())
 
     LaunchedEffect(Unit) {
@@ -98,7 +111,7 @@ fun RoomPageContent(navController: NavController) {
         }
     }
     Surface(color = MaterialTheme.colorScheme.background) {
-        RoomControlPanel(switches, sensors, rangeSwitches, navController, roomStateId)
+        RoomControlPanel(switches, sensors, rangeSwitches, navController, roomStateId, roomName!!)
     }
 
 }
@@ -111,18 +124,40 @@ fun RoomControlPanel(
     rangeSwitches: List<RangeSwitch>,
     navController: NavController,
     roomStateId: Long,
+    roomName: String
 ) {
     val scope = rememberCoroutineScope()
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
         TopAppBar(
-            title = { Text("Living Room") },
+            title = {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        androidx.compose.material.Text(
+                            text = roomName,
+                            textAlign = TextAlign.Center,
+                            fontSize = 28.sp,
+                            modifier = Modifier
+                                .weight(6f)
+                                .offset(x = (-10).dp)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            },
             navigationIcon = {
                 IconButton(onClick = { moveToPage(scope, navController, "main") }) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             },
             colors = TopAppBarDefaults.smallTopAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
+                containerColor = Color(0xffe7e0ec) ,
                 titleContentColor = Color.Black,
             ),
         )
@@ -155,7 +190,7 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
     var isEnabled by remember { mutableStateOf(switch.enabled) }
     val updater = PageUtils.getSwitchUpdater()
 
-    // Функция для переключения состояния с проверкой допустимости переключения
+    // Function to toggle switch state with validity check
     fun toggleSwitch() {
         if (roomStateId >= switch.stateId) {
             isEnabled = !isEnabled
@@ -169,6 +204,18 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
         }
     }
 
+    // Determine the background color based on the switch type and state
+    val backgroundColor = if (roomStateId < switch.stateId) {
+        Color.Gray  // Gray background for blocked state
+    } else {
+        when {
+            isEnabled && switch.type == "light" -> Color(0xFFFFA726) // Orange for light
+            isEnabled && switch.type == "power" -> Color(0xFF42A5F5) // Blue for power
+            isEnabled && switch.type == "lock" -> Color(0xFF8BC34A)  // Lime for lock
+            else -> Color(0xffe7e0ec)             // Default color for disabled state
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,35 +223,58 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 25.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Icon based on switch type
+                Icon(
+                    imageVector = when (switch.type) {
+                        "power" -> Icons.Filled.Power
+                        "lock" -> Icons.Filled.Lock
+                        "light" -> Icons.Filled.Lightbulb
+                        else -> Icons.AutoMirrored.Filled.HelpOutline
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                androidx.compose.material3.Switch(
+                    checked = isEnabled,
+                    onCheckedChange = { if (roomStateId >= switch.stateId) toggleSwitch() },
+                    thumbContent = {
+                        Box(
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(50))
+                                .size(20.dp)
+                        )
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Green,  // Green for enabled state
+                        uncheckedThumbColor = Color.Gray  // Gray for disabled state
+                    )
+                )
+            }
+
             Text(
                 text = switch.name,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.Start)
             )
-            androidx.compose.material3.Switch(
-                checked = isEnabled,
-                onCheckedChange = { toggleSwitch() },
-                thumbContent = {
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(50))
-                            .size(20.dp)
-                    )
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.Green,  // Зеленый для включенного состояния
-                    uncheckedThumbColor = Color.Gray  // Серый для выключенного состояния
-                )
-            )
+
         }
     }
 }
@@ -246,13 +316,42 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
         }
     }
 
+    val icon = when (rangeSwitch.type) {
+        "climat" -> Icons.Default.AcUnit
+        "light" -> Icons.Default.Light
+        else -> Icons.Default.Build
+    }
+
+    val label = when (rangeSwitch.type) {
+        "climat" -> "Температура"
+        "light" -> "Яркость"
+        else -> "Параметр"
+    }
+
+    val backgroundColor = when {
+        roomStateId < rangeSwitch.stateId -> Color.Gray
+        rangeSwitch.type == "climat" && isEnabled -> {
+            val range = rangeSwitch.maxValue - rangeSwitch.minValue
+            when {
+                sliderValue <= rangeSwitch.minValue + range / 3 -> Color(0xFF48C2FA) // Light Blue
+                sliderValue <= rangeSwitch.minValue + 2 * range / 3 -> Color(0xFFFFC166) // Light Orange
+                else -> Color(0xFFFC4E4E) // Light Red
+            }
+        }
+
+        else -> Color(0xffe7e0ec)
+    }
+
     Card(
-        modifier = deviceCardBackground()
+        modifier = Modifier
             .fillMaxWidth()
             .height(240.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
         )
     ) {
         Column(
@@ -262,15 +361,20 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(Icons.Default.Build, contentDescription = "Device Icon")
+                Icon(
+                    icon,
+                    contentDescription = "Device Icon",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
                 androidx.compose.material3.Switch(
-                    checked =  isEnabled,
+                    checked = isEnabled,
                     onCheckedChange = {
-                        if(roomStateId >= rangeSwitch.stateId){
+                        if (roomStateId >= rangeSwitch.stateId) {
                             toggleSwitch()
                         }
                     },
@@ -291,58 +395,85 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
             ) {
                 Text(text = rangeSwitch.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Текущее значение: ${"%.1f".format(sliderValue)}",
+                    text = label,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                Text(
+                    text = "${"%.0f".format(sliderValue)}°",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Slider(
-                    value = sliderValue.toFloat(),
-                    onValueChange = { newValue ->
-                        if (roomStateId >= rangeSwitch.stateId) sliderValue = newValue.toDouble()
-                    },
-                    onValueChangeFinished = {
-                        if (roomStateId >= rangeSwitch.stateId) {
-                            toggleSlider(sliderValue)
-                        }
-                    },
-                    valueRange = rangeSwitch.minValue.toFloat()..rangeSwitch.maxValue.toFloat(),
-                    steps = ((rangeSwitch.maxValue - rangeSwitch.minValue) / 0.1).toInt() - 1,
-                    enabled = isEnabled && roomStateId >= rangeSwitch.stateId,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                    )
-                )
             }
+
+            Slider(
+                value = sliderValue.toFloat(),
+                onValueChange = { newValue ->
+                    if (roomStateId >= rangeSwitch.stateId) {
+                        sliderValue = newValue.toDouble()
+                    } else {
+                        Log.w(
+                            "Action blocked",
+                            "Slider for ${rangeSwitch.name} cannot be changed due to state restrictions"
+                        )
+                    }
+                },
+                onValueChangeFinished = {
+                    if (roomStateId >= rangeSwitch.stateId) {
+                        toggleSlider(sliderValue)
+                    }
+                },
+                valueRange = rangeSwitch.minValue.toFloat()..rangeSwitch.maxValue.toFloat(),
+                steps = ((rangeSwitch.maxValue - rangeSwitch.minValue) / 0.1).toInt() - 1,
+                enabled = isEnabled && roomStateId >= rangeSwitch.stateId,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                ),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .fillMaxWidth()
+            )
         }
     }
 }
 
 
+
 @Composable
-fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
+fun DeviceSensorCard(sensor: Sensor, navController: androidx.navigation.NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // Determine the icon and unit based on the sensor type
+    val (icon, unit) = when (sensor.type) {
+        "temperature" -> Icons.Filled.Thermostat to "°C"
+        "humidity" -> Icons.Filled.Water to "%"
+        "light" -> Icons.Filled.Lightbulb to "%"
+        else -> Icons.AutoMirrored.Filled.HelpOutline to ""
+    }
+
     Card(
-        modifier = deviceCardBackground()
+        modifier = Modifier
             .fillMaxWidth()
             .height(120.dp)
             .clickable {
-                saveSensorIdToCache(context, sensor.id, sensor.name, sensor.value.toFloat())
+                saveSensorIdToCache(context, sensor.id, sensor.name, sensor.value.toFloat(), sensor.type)
                 moveToPage(scope, navController, "sensor")
             },
         shape = RoundedCornerShape(12.dp),
@@ -351,21 +482,45 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = sensor.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(text = "${sensor.value}°C", fontSize = 16.sp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Display the larger sensor icon
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+
+            Text(
+                text = sensor.name,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Text(
+                text = "${sensor.value} $unit",
+                fontSize = 16.sp,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.Start)
+            )
         }
     }
 }
 
-fun saveSensorIdToCache(context: Context, sensorId: Long, sensorName: String, temperature: Float) {
+fun saveSensorIdToCache(context: Context, sensorId: Long, sensorName: String, temperature: Float, type: String) {
     val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     with(sharedPref.edit()) {
         putLong("cur_sensor", sensorId)
         putFloat("cur_sensor_temperature", temperature)
         putString("cur_sensor_name", sensorName)
+        putString("cur_sensor_type", type)
 
         apply()
     }

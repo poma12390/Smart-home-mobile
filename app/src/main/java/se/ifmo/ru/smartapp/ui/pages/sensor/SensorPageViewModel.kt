@@ -15,14 +15,13 @@ import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
-import se.ifmo.ru.smartapp.ui.data.Switch
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import java.io.IOException
 
 class SensorPageViewModel(application: Application) : AndroidViewModel(application) {
     private val client = OkHttpClient()
-    private val _xValues = MutableLiveData<List<Double>>(emptyList())
-    val xValues: LiveData<List<Double>> = _xValues
+    private val _xValues = MutableLiveData<List<Long>>(emptyList())
+    val xValues: LiveData<List<Long>> = _xValues
     private val _yValues = MutableLiveData<List<Double>>(emptyList())
     val yValues: LiveData<List<Double>> = _yValues
 
@@ -51,12 +50,12 @@ class SensorPageViewModel(application: Application) : AndroidViewModel(applicati
                     response.body?.string()?.let { json ->
                         try {
                             val jsonObject = JSONObject(json)
-                            val hoursArray = jsonObject.getJSONArray("hours")
+                            val secondsArray = jsonObject.getJSONArray("seconds")
                             val valuesArray = jsonObject.getJSONArray("values")
 
-                            val xValuesList = mutableListOf<Double>()
-                            for (i in 0 until hoursArray.length()) {
-                                xValuesList.add(hoursArray.getDouble(i))
+                            val xValuesList = mutableListOf<Long>()
+                            for (i in 0 until secondsArray.length()) {
+                                xValuesList.add(secondsArray.getLong(i))
                             }
 
                             val yValuesList = mutableListOf<Double>()

@@ -89,6 +89,8 @@ dependencies {
     implementation(libs.androidx.material)
     implementation(libs.ui.tooling)
     implementation(libs.androidx.lifecycle.runtime.ktx.v231)
+    implementation(libs.androidx.material.icons.extended)
+
 
 
 }

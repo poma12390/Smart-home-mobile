@@ -73,7 +73,7 @@ fun RegisterPage(navController: NavController) {
                 modifier = Modifier.padding(top = 50.dp, bottom = 16.dp)
             )
             Text(
-                "Create Account",
+                "Создать аккаунт",
                 fontSize = 26.sp,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -96,7 +96,7 @@ fun RegisterPage(navController: NavController) {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email Address") },
+                label = { Text("Логин") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -108,7 +108,7 @@ fun RegisterPage(navController: NavController) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text("Пароль") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -122,7 +122,7 @@ fun RegisterPage(navController: NavController) {
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Rewrite password") },
+                label = { Text("Повторите пароль") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -139,7 +139,7 @@ fun RegisterPage(navController: NavController) {
             Button(
                 onClick = {
                     if (password != confirmPassword) {
-                        errorMessage = "Passwords do not match"
+                        errorMessage = "Пароли не совпадают"
                         return@Button
                     }
                     errorMessage = null
@@ -150,7 +150,7 @@ fun RegisterPage(navController: NavController) {
                     client.newCall(request).enqueue(object : Callback {
                         override fun onFailure(call: Call, e: IOException) {
                             isLoading = false
-                            errorMessage = "Network error: Please try again later."
+                            errorMessage = "Ошибка подключения"
                         }
 
                         override fun onResponse(call: Call, response: Response) {
@@ -158,7 +158,7 @@ fun RegisterPage(navController: NavController) {
                             if (response.isSuccessful) {
                                 moveToPage(coroutineScope, navController, LOGIN_PAGE.pageName)
                             } else {
-                                errorMessage = "Registration failed: ${response.code}"
+                                errorMessage = "Произошла страшная ошибка: ${response.code}"
                             }
                         }
                     })
@@ -167,7 +167,6 @@ fun RegisterPage(navController: NavController) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .height(50.dp),
-                colors = ButtonDefaults.buttonColors(Color.Red)
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(color = Color.White)

@@ -82,7 +82,7 @@ fun LoginPage(navController: NavController) {
                     .padding(16.dp)
             ) {
                 Text(
-                    "Login Account",
+                    "Вход в аккаунт",
                     fontSize = 26.sp,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
@@ -90,7 +90,7 @@ fun LoginPage(navController: NavController) {
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Email Address") },
+                    label = { Text("Логин") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
@@ -99,7 +99,7 @@ fun LoginPage(navController: NavController) {
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text("Пароль") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -118,7 +118,7 @@ fun LoginPage(navController: NavController) {
                         client.newCall(request).enqueue(object : Callback {
                             override fun onFailure(call: Call, e: IOException) {
                                 isLoading = false
-                                errorMessage = "Network error: Please try again later."
+                                errorMessage = "Ошибка сети"
                             }
 
                             override fun onResponse(call: Call, response: Response) {
@@ -161,7 +161,7 @@ fun LoginPage(navController: NavController) {
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White)
                     } else {
-                        Text("Sign In")
+                        Text("Войти")
                     }
                 }
 
@@ -178,7 +178,7 @@ fun LoginPage(navController: NavController) {
                             canNavigate = true
                         }
                     }) {
-                        Text("Don't have an account? Join Us", color = Color.Gray)
+                        Text("Нету аккаунта?", color = Color.Gray)
                     }
                 }
             }

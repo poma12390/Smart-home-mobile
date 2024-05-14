@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -110,7 +111,10 @@ fun MainPageContent(navController: NavController) {
     // Здесь должен быть код для выполнения HTTP-запроса и обновления списка комнат
 
     Surface(color = MaterialTheme.colorScheme.background) {
-        Column {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
             TopSection(weatherOutside, weatherInside, electricity, navController)
             HomeSection(switches, homeStateId, viewModel)
             RoomsSection(rooms, navController)
@@ -143,13 +147,13 @@ fun TopSection(
             Spacer(modifier = Modifier.height(8.dp))
             Text("Outside", color = Color.Gray)
             Text(
-                text = if (weatherOutside < -200.0) "Loading" else "${weatherOutside}°C",
+                text = if (weatherOutside < -200.0) "Загрузка..." else "${weatherOutside}°C",
                 fontSize = 18.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text("Inside", color = Color.Gray)
             Text(
-                text = if (weatherInside < -200.0) "Loading" else "${weatherInside}°C",
+                text = if (weatherInside < -200.0) "Загрузка..." else "${weatherInside}°C",
                 fontSize = 18.sp
             )
         }
@@ -159,7 +163,7 @@ fun TopSection(
             Spacer(modifier = Modifier.height(8.dp))
             Text("Power", color = Color.Gray)
             Text(
-                text = if (electricity < -200.0) "Loading" else "$electricity kW",
+                text = if (electricity < -200.0) "Загрузка..." else "$electricity kW",
                 fontSize = 18.sp
             )
         }
@@ -212,7 +216,7 @@ fun HomeSection(switches: List<Switch>, homeStateId: Long, viewModel: MainPageVi
 @Composable
 fun RoomsSection(rooms: List<Room>, navController: NavController) {
     Log.i("rooms", rooms.toString())
-    val filteredRooms = rooms.filter { room -> room.name != "Home" && room.name != "Дом" }
+    val filteredRooms = rooms.filter { room -> room.name != "Home" && room.name != "Дом" && room.name != "Улица" }
         .filter { room -> room.name != "home" } // Фильтруем комнаты
     Column {
         Text(
@@ -293,7 +297,7 @@ fun RoomItem(room: Room, navController: NavController) {
             .background(color = Color.LightGray, shape = RoundedCornerShape(8.dp))
             .clickable {
                 coroutineScope.launch {
-                    saveRoomToCache(context, room.id)
+                    saveRoomToCache(context, room.id, room.name)
                     moveToPage(coroutineScope, navController, "room")
                 }
             }
@@ -333,10 +337,11 @@ fun AddDeviceItem() {
     }
 }
 
-fun saveRoomToCache(context: Context, roomId: Long) {
+fun saveRoomToCache(context: Context, roomId: Long, name: String) {
     val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     with(sharedPref.edit()) {
         putLong("cur_room", roomId)
+        putString("cur_room_name", name)
         apply()
     }
     Log.i("saved roomId", roomId.toString())

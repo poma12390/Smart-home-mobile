@@ -56,7 +56,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
             _rooms.postValue(updatedRooms)
 
             while (_rooms.value!!.size == size) {
-
+                Log.i("sync room", "waiting")
             }
             Log.i("adding ${_rooms.value!!.size - size!!}rooms complete", _rooms.value!!.toString())
         }
@@ -69,7 +69,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
             Log.i("setting home state id to", stateId.toString())
             _homeStateId.postValue(stateId)
             while (_homeStateId.value == prev) {
-
+                Log.i("sync stateId", "waiting")
             }
             Log.i("set homeStateId to", _homeStateId.value.toString())
 

@@ -89,11 +89,11 @@ fun RoomPageContent(navController: NavController) {
     LaunchedEffect(Unit) {
 
         coroutineScope {
-            launch() {
+            launch {
                 viewModel.fetchRoomDetails(roomId)
             }
 
-            launch() {
+            launch{
                 // Запуск fetchHomeState каждые 5 секунд
                 while (isActive) {
                     delay(5000)
@@ -149,7 +149,7 @@ fun RoomControlPanel(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             },
-            colors = TopAppBarDefaults.smallTopAppBarColors(
+            colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(roomColor),
                 titleContentColor = Color.Black,
             ),
@@ -172,6 +172,7 @@ fun RoomControlPanel(
         }
     }
 }
+
 
 
 
@@ -344,7 +345,6 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
     }
 
     val switchThumbColor = if (roomStateId < rangeSwitch.stateId) Color.Gray else Color.White
-    val switchTrackColor = if (isEnabled) backgroundColor else Color.LightGray
 
     Card(
         modifier = Modifier

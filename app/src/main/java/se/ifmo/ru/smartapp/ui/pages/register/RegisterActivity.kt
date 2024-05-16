@@ -1,4 +1,4 @@
-package se.ifmo.ru.smartapp.ui.pages
+package se.ifmo.ru.smartapp.ui.pages.register
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

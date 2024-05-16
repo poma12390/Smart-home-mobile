@@ -9,9 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import se.ifmo.ru.smartapp.ui.pages.LoginPage
+import se.ifmo.ru.smartapp.ui.pages.login.LoginPage
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
-import se.ifmo.ru.smartapp.ui.pages.RegisterPage
+import se.ifmo.ru.smartapp.ui.pages.register.RegisterPage
 import se.ifmo.ru.smartapp.ui.pages.main.MainPageContent
 import se.ifmo.ru.smartapp.ui.pages.room.RoomPageContent
 import se.ifmo.ru.smartapp.ui.pages.sensor.SensorPageContent

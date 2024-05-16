@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,7 +25,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeviceUnknown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -85,10 +83,10 @@ fun MainPageContent(navController: NavController) {
 
     LaunchedEffect(Unit) {
         coroutineScope {
-            launch() {
+            launch {
                 viewModel.fetchRooms(this, navController, application)
             }
-            launch() {
+            launch {
                 // Запуск fetchHomeState каждые 5 секунд
                 while (isActive) {
                     viewModel.fetchHomeState(this, navController, application)
@@ -357,35 +355,6 @@ fun getIconResource(roomType: String): Int {
         "bathroom" -> R.drawable.bathroom
         "kitchen" -> R.drawable.kitchen
         else -> R.drawable.default_room
-    }
-}
-
-
-@Composable
-fun AddRoomItem() {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .padding(8.dp)
-            .aspectRatio(1f)
-            .background(color = Color.Gray, shape = RoundedCornerShape(8.dp))
-            .clickable { /* обработчик нажатия */ }
-    ) {
-        Icon(Icons.Default.Add, contentDescription = "Add Room")
-    }
-}
-
-@Composable
-fun AddDeviceItem() {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .padding(8.dp)
-            .size(100.dp)
-            .background(Color.LightGray, RoundedCornerShape(8.dp))
-            .clickable { /* handle click */ }
-    ) {
-        Icon(Icons.Default.Add, contentDescription = "Add Device", modifier = Modifier.size(48.dp))
     }
 }
 

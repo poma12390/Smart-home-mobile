@@ -120,7 +120,7 @@ class RoomPageViewModel(application: Application) : AndroidViewModel(application
             Log.i("setting room state id to", stateId.toString())
             _roomStateId.postValue(stateId)
             while (_roomStateId.value == prev) {
-
+                Log.i("sync stateId", "waiting")
             }
             Log.i("set roomStateId to", _roomStateId.value.toString())
 

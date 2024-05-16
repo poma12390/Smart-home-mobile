@@ -1,4 +1,4 @@
-package se.ifmo.ru.smartapp.ui.pages
+package se.ifmo.ru.smartapp.ui.pages.login
 
 import android.content.Context
 import androidx.compose.foundation.layout.Column

@@ -12,7 +12,6 @@ class PageUtils {
 
     companion object {
         private var curStateId: Long = 1
-        private lateinit var application: Application
         private lateinit var updater: SwitchUpdater
 
         fun getNewStateId(): Long {

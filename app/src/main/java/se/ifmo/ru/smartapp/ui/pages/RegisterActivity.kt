@@ -1,11 +1,18 @@
 package se.ifmo.ru.smartapp.ui.pages
 
-import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -14,12 +21,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -30,20 +43,20 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
-import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 import se.ifmo.ru.smartapp.ui.pages.PageNames.LOGIN_PAGE
+import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 import java.io.IOException
 
-class MainActivity : ComponentActivity() {
 
-}
 @Composable
 fun RegisterPage(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    var canNavigate by remember { mutableStateOf(true) }
+    val canNavigate by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -59,21 +72,21 @@ fun RegisterPage(navController: NavController) {
                     if (canNavigate) {
                         moveToPage(coroutineScope, navController, LOGIN_PAGE.pageName)
                     }
-
                 }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-                Spacer(modifier = Modifier.weight(1f)) // для выравнивания заголовка и кнопки по бокам
-                // Если у вас есть заголовок страницы, он может быть здесь
+                Spacer(modifier = Modifier.weight(1f))
             }
+
             Text(
                 "not Smart Home",
                 fontSize = 34.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 50.dp, bottom = 16.dp)
             )
+
             Text(
-                "Создать аккаунт",
+                "Регистрация",
                 fontSize = 26.sp,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -95,7 +108,7 @@ fun RegisterPage(navController: NavController) {
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { email = it.trim() },
                 label = { Text("Логин") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -107,41 +120,64 @@ fun RegisterPage(navController: NavController) {
 
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { password = it.trim() },
                 label = { Text("Пароль") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = {
+                        passwordVisible = !passwordVisible
+                    }) {
+                        Icon(imageVector = image, contentDescription = null)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = confirmPassword,
-                onValueChange = { confirmPassword = it },
+                onValueChange = { confirmPassword = it.trim() },
                 label = { Text("Повторите пароль") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     // Handle done action
-                })
+                }),
+                trailingIcon = {
+                    val image = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                    IconButton(onClick = {
+                        confirmPasswordVisible = !confirmPasswordVisible
+                    }) {
+                        Icon(imageVector = image, contentDescription = null)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
+                    // Validate the inputs
+                    if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                        errorMessage = "Поля не могут быть пустими"
+                        return@Button
+                    }
+
                     if (password != confirmPassword) {
                         errorMessage = "Пароли не совпадают"
                         return@Button
                     }
+
                     errorMessage = null
                     isLoading = true
                     val client = OkHttpClient()
@@ -150,7 +186,7 @@ fun RegisterPage(navController: NavController) {
                     client.newCall(request).enqueue(object : Callback {
                         override fun onFailure(call: Call, e: IOException) {
                             isLoading = false
-                            errorMessage = "Ошибка подключения"
+                            errorMessage = "Ошибка сети"
                         }
 
                         override fun onResponse(call: Call, response: Response) {
@@ -158,7 +194,7 @@ fun RegisterPage(navController: NavController) {
                             if (response.isSuccessful) {
                                 moveToPage(coroutineScope, navController, LOGIN_PAGE.pageName)
                             } else {
-                                errorMessage = "Произошла страшная ошибка: ${response.code}"
+                                errorMessage = "Страшная ошибка: ${response.code}"
                             }
                         }
                     })
@@ -167,11 +203,12 @@ fun RegisterPage(navController: NavController) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722))
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(color = Color.White)
                 } else {
-                    Text("Sign up", fontSize = 20.sp, color = Color.White)
+                    Text("Создать аккаунт", fontSize = 20.sp, color = Color.White)
                 }
             }
         }
@@ -193,5 +230,3 @@ private fun sendRegisterRequest(email: String, password: String): Request {
         .post(requestBody)
         .build()
 }
-
-

@@ -1,14 +1,22 @@
 package se.ifmo.ru.smartapp.ui.pages
 
 import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -53,6 +63,7 @@ fun LoginPage(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val client = OkHttpClient()
     val context = LocalContext.current
@@ -79,7 +90,8 @@ fun LoginPage(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     "Вход в аккаунт",
@@ -87,9 +99,16 @@ fun LoginPage(navController: NavController) {
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
 
+                Text(
+                    "Hello, hi, Whasap, bye",
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it },
+                    onValueChange = { username = it.trim() },
                     label = { Text("Логин") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -98,19 +117,36 @@ fun LoginPage(navController: NavController) {
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { password = it.trim() },
                     label = { Text("Пароль") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         sendLoginRequest(username, password)
-                    })
+                    }),
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            Icons.Default.Visibility
+                        else Icons.Default.VisibilityOff
+
+                        IconButton(onClick = {
+                            passwordVisible = !passwordVisible
+                        }) {
+                            Icon(imageVector = image, contentDescription = null)
+                        }
+                    }
                 )
 
                 Button(
                     onClick = {
+                        // Validate the inputs
+                        if (username.isBlank() || password.isBlank()) {
+                            errorMessage = "Поля не могут быть пустими"
+                            return@Button
+                        }
+
                         errorMessage = null
                         isLoading = true
                         val request = sendLoginRequest(username, password)
@@ -145,41 +181,35 @@ fun LoginPage(navController: NavController) {
                                         "Failed to parse error message"
                                     }
                                 } else {
-                                    errorMessage = "Unexpected error: ${response.code}"
+                                    errorMessage = "Страшная ошибка: ${response.code}"
                                 }
 
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.Main) {
-                                        // Обновите UI в главном потоке
-                                    }
-                                }
                             }
-
                         })
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White)
                     } else {
-                        Text("Войти")
+                        Text("Вход", color = Color.White)
                     }
                 }
 
-
-                val showRegisterPage = remember { mutableStateOf(false) }
-
-                if (showRegisterPage.value) {
-                    RegisterPage(navController)
-                } else {
-                    TextButton(onClick = {
-                        if (canNavigate) {
-                            canNavigate = false
-                            moveToPage(coroutineScope, navController, REGISTER_PAGE.pageName)
-                            canNavigate = true
-                        }
-                    }) {
-                        Text("Нету аккаунта?", color = Color.Gray)
+                TextButton(onClick = {
+                    if (canNavigate) {
+                        canNavigate = false
+                        moveToPage(coroutineScope, navController, REGISTER_PAGE.pageName)
+                        canNavigate = true
                     }
+                }) {
+                    Text(
+                        "Нету аккаунта? Присоединиться",
+                        color = Color(0xFFFF5722)
+                    )
                 }
             }
         }
@@ -188,11 +218,11 @@ fun LoginPage(navController: NavController) {
 
 private fun sendLoginRequest(username: String, password: String): Request {
     val json = """
-                            {
-                                "username": "$username",
-                                "password": "$password"
-                            }
-                        """.trimIndent()
+        {
+            "username": "$username",
+            "password": "$password"
+        }
+    """.trimIndent()
 
     val requestBody = json
         .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())

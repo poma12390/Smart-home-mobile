@@ -80,22 +80,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addSyncSwitches(switches: List<Switch>) {
-        if (switches.isEmpty()) return
-        val size = _switches.value?.size
-        synchronized(_switches) {
-            switches.forEach { switch ->
-                Log.i("adding rooms", switch.name)
-            }
-            val currentSwitches = _switches.value ?: emptyList()
-            val updatedSwitches = currentSwitches + switches
-            _switches.postValue(updatedSwitches)
-            while (_switches.value!!.size == size) {
 
-            }
-            Log.i("adding switches complete", _switches.value!!.toString())
-        }
-    }
 
     // Функция для выполнения запроса к API для получения комнат
     fun fetchRooms(

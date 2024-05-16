@@ -90,6 +90,8 @@ dependencies {
     implementation(libs.ui.tooling)
     implementation(libs.androidx.lifecycle.runtime.ktx.v231)
     implementation(libs.androidx.material.icons.extended)
+    implementation("com.google.android.material:material:1.4.0")
+
 
 
 

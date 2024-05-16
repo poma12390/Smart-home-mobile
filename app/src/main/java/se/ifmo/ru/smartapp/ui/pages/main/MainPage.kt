@@ -28,8 +28,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DeviceUnknown
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -91,7 +94,6 @@ fun MainPageContent(navController: NavController) {
 
 
     LaunchedEffect(Unit) {
-
         coroutineScope {
             launch() {
                 viewModel.fetchRooms(this, navController, application)
@@ -108,7 +110,6 @@ fun MainPageContent(navController: NavController) {
     }
 
 
-    // Здесь должен быть код для выполнения HTTP-запроса и обновления списка комнат
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Column(
@@ -116,7 +117,7 @@ fun MainPageContent(navController: NavController) {
                 .fillMaxSize()
         ) {
             TopSection(weatherOutside, weatherInside, electricity, navController)
-            HomeSection(switches, homeStateId, viewModel)
+            HomeSection(switches, homeStateId)
             RoomsSection(rooms, navController)
         }
     }
@@ -143,15 +144,15 @@ fun TopSection(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text("Weather", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text("Погода", fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Outside", color = Color.Gray)
+            Text("Снаружи", color = Color.Gray)
             Text(
                 text = if (weatherOutside < -200.0) "Загрузка..." else "${weatherOutside}°C",
                 fontSize = 18.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Inside", color = Color.Gray)
+            Text("Внутри", color = Color.Gray)
             Text(
                 text = if (weatherInside < -200.0) "Загрузка..." else "${weatherInside}°C",
                 fontSize = 18.sp
@@ -159,9 +160,9 @@ fun TopSection(
         }
 
         Column {
-            Text("Electricity", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text("Электричество", fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Power", color = Color.Gray)
+            Text("Мощность", color = Color.Gray)
             Text(
                 text = if (electricity < -200.0) "Загрузка..." else "$electricity kW",
                 fontSize = 18.sp
@@ -181,12 +182,13 @@ fun TopSection(
             Box(
                 modifier = Modifier
                     .size(50.dp)
-                    .background(Color(0xFFFFA726), shape = CircleShape)
+                    .background(Color(0xFFFFA726), shape = CircleShape),
+                contentAlignment = Alignment.Center // Центрирование содержимого в Box
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground), // Замените на ваш ресурс
-                    contentDescription = "Account Image",
-                    modifier = Modifier.size(50.dp)
+                    painter = painterResource(id = R.drawable.logout), // Замените на ваш ресурс
+                    contentDescription = "Account logout",
+                    modifier = Modifier.size(25.dp)
                 )
             }
         }
@@ -194,37 +196,105 @@ fun TopSection(
 }
 
 
-
-
 @Composable
-fun HomeSection(switches: List<Switch>, homeStateId: Long, viewModel: MainPageViewModel) {
+fun HomeSection(switches: List<Switch>, homeStateId: Long) {
     Log.i("drawing switches", switches.toString())
 
-    Column {
-        Text("Home", style = MaterialTheme.typography.displayMedium)
+    Column(
+        modifier = Modifier.fillMaxWidth() // Make sure the column takes up the full width
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Мой дом", style = MaterialTheme.typography.displayMedium)
+        }
         LazyRow(
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(5.dp),
         ) {
             items(switches) { switch ->
-                DeviceItem(switch, homeStateId, viewModel)
+                DeviceItem(switch, homeStateId)
             }
         }
     }
 }
 
+
+@Composable
+fun DeviceItem(switch: Switch, homeStateId: Long) {
+    var isEnabled by remember { mutableStateOf(switch.enabled) }
+    val updater = PageUtils.getSwitchUpdater()
+    fun toggleSwitch() {
+        isEnabled = !isEnabled
+        switch.stateId = PageUtils.getNewStateId()
+        updater.updateSwitchState(isEnabled, switch.id, switch.stateId)
+    }
+
+    val isLocked = homeStateId < switch.stateId
+    val backgroundColor = when {
+        isLocked -> Color.Gray
+        !isEnabled -> Color.LightGray
+        switch.type == "power" -> Color(0xFFFCEA51) // Yellow for WiFi
+        switch.type == "lock" -> Color(0xFFF89239) // Green for Lock
+        else -> Color(0xFF76FF03) // Default enabled color
+    }
+
+    val icon = when (switch.type) {
+        "power" -> Icons.Default.Wifi
+        "lock" -> if (isEnabled) Icons.Default.LockOpen else Icons.Default.Lock
+        else -> Icons.Default.DeviceUnknown // Use a default icon if type is unknown
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(8.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(64.dp)
+                .background(
+                    color = backgroundColor,
+                    shape = CircleShape
+                )
+                .clickable(enabled = !isLocked) {
+                    toggleSwitch()
+                }
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = switch.name,
+                tint = Color.Black,
+                modifier = Modifier.size(40.dp)
+            )
+        }
+        Text(
+            text = switch.name,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+
 @Composable
 fun RoomsSection(rooms: List<Room>, navController: NavController) {
     Log.i("rooms", rooms.toString())
-    val filteredRooms = rooms.filter { room -> room.name != "Home" && room.name != "Дом" && room.name != "Улица" }
-        .filter { room -> room.name != "home" } // Фильтруем комнаты
+    val filteredRooms =
+        rooms.filter { room -> room.name != "Home" && room.name != "Дом" && room.name != "Улица" }
+            .filter { room -> room.name != "home" } // Filter rooms
     Column {
         Text(
-            "Rooms",
+            "Комнаты",
+            style = MaterialTheme.typography.displaySmall,
+            modifier = Modifier.padding(horizontal = 10.dp)
         )
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -236,56 +306,7 @@ fun RoomsSection(rooms: List<Room>, navController: NavController) {
 }
 
 @Composable
-fun DeviceItem(switch: Switch, homeStateId: Long, viewModel: MainPageViewModel) {
-    var isEnabled by remember { mutableStateOf(switch.enabled) }
-    val updater = PageUtils.getSwitchUpdater()
-    fun toggleSwitch() {
-        isEnabled = !isEnabled
-        switch.stateId = PageUtils.getNewStateId()
-        updater.updateSwitchState(isEnabled, switch.id, switch.stateId)
-    }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(8.dp)
-            .width(100.dp)
-            .height(100.dp)
-            .background(
-                color = if (isEnabled) Color(0xFF76FF03) else Color(0xFFBDBDBD),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable {
-                if (homeStateId >= switch.stateId) {
-                    toggleSwitch()
-                } else {
-                    Log.w("blocked", "switch " + switch.name)
-                }
-            }
-    ) {
-        Icon(
-            imageVector = if (switch.type == "power") Icons.Default.Star else Icons.Default.Lock,
-            contentDescription = switch.name,
-            tint = Color.White,
-            modifier = Modifier
-                .size(48.dp)
-                .padding(top = 16.dp)
-        )
-        Text(
-            text = switch.name,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-    }
-}
-
-@Composable
 fun RoomItem(room: Room, navController: NavController) {
-    val icon = when (room.type) {
-        "Living Room" -> Icons.Default // Example icon, replace with your actual icons
-        "Dining Room" -> Icons.Default
-        else -> Icons.Default
-    }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -293,21 +314,53 @@ fun RoomItem(room: Room, navController: NavController) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .padding(8.dp)
-            .aspectRatio(1f)
-            .background(color = Color.LightGray, shape = RoundedCornerShape(8.dp))
+            .fillMaxWidth()
+            .height(120.dp)
+            .background(color = getBackgroundColor(room.type), shape = RoundedCornerShape(20.dp))
             .clickable {
                 coroutineScope.launch {
-                    saveRoomToCache(context, room.id, room.name)
+                    saveRoomToCache(context, room.id, room.name, room.type)
                     moveToPage(coroutineScope, navController, "room")
                 }
             }
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Icon can be placed here if needed
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = getIconResource(room.type)),
+                contentDescription = room.name,
+                modifier = Modifier.size(60.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(room.name, textAlign = TextAlign.Center)
         }
     }
 }
+
+@Composable
+fun getBackgroundColor(roomType: String): Color {
+    return when (roomType) {
+        "hallway" -> Color(0xFFF5F5DC)
+        "living" -> Color(0xFFE0FFE0) // Light green
+        "bathroom" -> Color(0xFFE0FFFF) // Light blue
+        "kitchen" -> Color(0xFFFFE0B2) // Light orange
+        else -> Color.LightGray
+    }
+}
+
+@Composable
+fun getIconResource(roomType: String): Int {
+    return when (roomType) {
+        "hallway" -> R.drawable.hallway
+        "living" -> R.drawable.living_room
+        "bathroom" -> R.drawable.bathroom
+        "kitchen" -> R.drawable.kitchen
+        else -> R.drawable.default_room
+    }
+}
+
 
 @Composable
 fun AddRoomItem() {
@@ -337,11 +390,22 @@ fun AddDeviceItem() {
     }
 }
 
-fun saveRoomToCache(context: Context, roomId: Long, name: String) {
+
+fun saveRoomToCache(context: Context, roomId: Long, name: String, roomType: String) {
     val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     with(sharedPref.edit()) {
         putLong("cur_room", roomId)
         putString("cur_room_name", name)
+        putLong(
+            "cur_room_color",
+            when (roomType) {
+                "hallway" -> 0xFFF5F5DC
+                "living" -> 0xFFE0FFE0
+                "bathroom" -> 0xFFE0FFFF
+                "kitchen" -> 0xFFFFE0B2
+                else -> Color.LightGray.value.toLong()
+            }
+        )
         apply()
     }
     Log.i("saved roomId", roomId.toString())

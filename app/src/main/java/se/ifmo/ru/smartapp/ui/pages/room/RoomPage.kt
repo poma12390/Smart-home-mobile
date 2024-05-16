@@ -3,6 +3,7 @@ package se.ifmo.ru.smartapp.ui.pages.room
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,6 +73,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import se.ifmo.ru.smartapp.R
 import se.ifmo.ru.smartapp.ui.data.RangeSwitch
 import se.ifmo.ru.smartapp.ui.data.Sensor
 import se.ifmo.ru.smartapp.ui.data.Switch
@@ -91,6 +94,7 @@ fun RoomPageContent(navController: NavController) {
     val roomStateId by viewModel.roomStateId.observeAsState(initial = 0)
     val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     val roomId = sharedPref.getLong("cur_room", 1)
+    val roomColor = sharedPref.getLong("cur_room_color", Color.LightGray.value.toLong())
     val roomName = sharedPref.getString("cur_room_name", "подвал")
     Log.i("opening room", roomId.toString())
 
@@ -111,7 +115,7 @@ fun RoomPageContent(navController: NavController) {
         }
     }
     Surface(color = MaterialTheme.colorScheme.background) {
-        RoomControlPanel(switches, sensors, rangeSwitches, navController, roomStateId, roomName!!)
+        RoomControlPanel(switches, sensors, rangeSwitches, navController, roomStateId, roomName!! , roomColor)
     }
 
 }
@@ -124,7 +128,8 @@ fun RoomControlPanel(
     rangeSwitches: List<RangeSwitch>,
     navController: NavController,
     roomStateId: Long,
-    roomName: String
+    roomName: String,
+    roomColor: Long
 ) {
     val scope = rememberCoroutineScope()
     Column(
@@ -157,7 +162,7 @@ fun RoomControlPanel(
                 }
             },
             colors = TopAppBarDefaults.smallTopAppBarColors(
-                containerColor = Color(0xffe7e0ec) ,
+                containerColor = Color(roomColor),
                 titleContentColor = Color.Black,
             ),
         )
@@ -180,10 +185,7 @@ fun RoomControlPanel(
     }
 }
 
-@Composable
-fun deviceCardBackground() = Modifier
-    .padding(2.dp)
-    .background(Color.White, RoundedCornerShape(10)) // White background
+
 
 @Composable
 fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
@@ -216,6 +218,12 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
         }
     }
 
+    val iconResource = if (isEnabled) {
+        getIconResource(switch.type)
+    } else {
+        getIconResourceBW(switch.type)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -241,15 +249,10 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 // Icon based on switch type
-                Icon(
-                    imageVector = when (switch.type) {
-                        "power" -> Icons.Filled.Power
-                        "lock" -> Icons.Filled.Lock
-                        "light" -> Icons.Filled.Lightbulb
-                        else -> Icons.AutoMirrored.Filled.HelpOutline
-                    },
+                Image(
+                    painter = painterResource(id = iconResource),
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(40.dp)
                 )
                 androidx.compose.material3.Switch(
                     checked = isEnabled,
@@ -278,6 +281,7 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
         }
     }
 }
+
 
 @Composable
 fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
@@ -316,12 +320,6 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
         }
     }
 
-    val icon = when (rangeSwitch.type) {
-        "climat" -> Icons.Default.AcUnit
-        "light" -> Icons.Default.Light
-        else -> Icons.Default.Build
-    }
-
     val label = when (rangeSwitch.type) {
         "climat" -> "Температура"
         "light" -> "Яркость"
@@ -339,7 +337,17 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
             }
         }
 
+        rangeSwitch.type == "light" && isEnabled -> {
+            Color(0xFFF3B435)
+        }
+
         else -> Color(0xffe7e0ec)
+    }
+
+    val iconResource = if (!isEnabled || roomStateId < rangeSwitch.stateId) {
+        getIconResourceBW(rangeSwitch.type)
+    } else {
+        getIconResource(rangeSwitch.type)
     }
 
     Card(
@@ -365,10 +373,9 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    icon,
-                    contentDescription = "Device Icon",
-                    tint = MaterialTheme.colorScheme.primary,
+                Image(
+                    painter = painterResource(id = iconResource),
+                    contentDescription = rangeSwitch.name,
                     modifier = Modifier.size(40.dp)
                 )
                 androidx.compose.material3.Switch(
@@ -453,32 +460,66 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
     }
 }
 
+@Composable
+fun getIconResource(type: String): Int {
+    return when (type) {
+        "light" -> R.drawable.lamp
+        "climat" -> R.drawable.cooling
+        "lock" -> R.drawable.lock
+        "power" -> R.drawable.power
+        "temperature" -> R.drawable.temperature
+        "humidity" -> R.drawable.humidity
+        else -> R.drawable.default_room
+    }
+}
+
+@Composable
+fun getIconResourceBW(type: String): Int {
+    return when (type) {
+        "light" -> R.drawable.lamp_bw
+        "climat" -> R.drawable.cooling_bw
+        "power" -> R.drawable.power_bw
+        "lock" -> R.drawable.lock_bw
+        else -> R.drawable.default_room
+    }
+}
 
 
 @Composable
-fun DeviceSensorCard(sensor: Sensor, navController: androidx.navigation.NavController) {
+fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Determine the icon and unit based on the sensor type
-    val (icon, unit) = when (sensor.type) {
-        "temperature" -> Icons.Filled.Thermostat to "°C"
-        "humidity" -> Icons.Filled.Water to "%"
-        "light" -> Icons.Filled.Lightbulb to "%"
-        else -> Icons.AutoMirrored.Filled.HelpOutline to ""
+    // Determine the unit and background color based on the sensor type
+    val (unit, backgroundColor) = when (sensor.type) {
+        "temperature" -> "°C" to Color(0xFFFFF3E0) // Light orange
+        "humidity" -> "%" to Color(0xFFE0F7FA) // Light blue
+        "light" -> "%" to Color(0xFFFFF9C4) // Light yellow
+        else -> "" to Color(0xFFE0E0E0) // Light gray
     }
+
+    val iconResource = getIconResource(sensor.type)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(120.dp)
             .clickable {
-                saveSensorIdToCache(context, sensor.id, sensor.name, sensor.value.toFloat(), sensor.type)
+                saveSensorIdToCache(
+                    context,
+                    sensor.id,
+                    sensor.name,
+                    sensor.value.toFloat(),
+                    sensor.type
+                )
                 moveToPage(scope, navController, "sensor")
             },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
         )
     ) {
         Column(
@@ -491,8 +532,8 @@ fun DeviceSensorCard(sensor: Sensor, navController: androidx.navigation.NavContr
                 modifier = Modifier.fillMaxWidth()
             ) {
                 // Display the larger sensor icon
-                Icon(
-                    imageVector = icon,
+                Image(
+                    painter = painterResource(id = iconResource),
                     contentDescription = null,
                     modifier = Modifier.size(30.dp)
                 )
@@ -514,7 +555,14 @@ fun DeviceSensorCard(sensor: Sensor, navController: androidx.navigation.NavContr
     }
 }
 
-fun saveSensorIdToCache(context: Context, sensorId: Long, sensorName: String, temperature: Float, type: String) {
+
+private fun saveSensorIdToCache(
+    context: Context,
+    sensorId: Long,
+    sensorName: String,
+    temperature: Float,
+    type: String
+) {
     val sharedPref = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
     with(sharedPref.edit()) {
         putLong("cur_sensor", sensorId)

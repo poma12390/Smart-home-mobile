@@ -82,7 +82,7 @@ fun SensorPageContent(navController: NavController) {
 
     val lineEntries = xValues.zip(yValues).map { (x, y) -> Entry(x.toFloat(), y.toFloat()) }
     val sharedPref = application.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-    val nHours = xValues.size/4
+    val nHours = 30
     val minTemperature = yValues.minOrNull() ?: -222.0
     val maxTemperature = yValues.maxOrNull() ?: -222.0
     val currentTemperature = sharedPref.getFloat("cur_sensor_temperature", -222f)
@@ -233,12 +233,12 @@ fun TemperatureInfoBlock(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (minTemperature < -200.0) "Загрузка..." else String.format("Минимальная температура (за последние %d часов): %.1f°C", nHours, minTemperature),
+                    text = if (minTemperature < -200.0) "Загрузка..." else String.format("Минимальная температура (за последние %d минут): %.1f°C", nHours, minTemperature),
                     fontSize = 18.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (maxTemperature < -200.0) "Загрузка..." else String.format("Максимальная температура (за последние %d часов): %.1f°C", nHours, maxTemperature),
+                    text = if (maxTemperature < -200.0) "Загрузка..." else String.format("Максимальная температура (за последние %d минут): %.1f°C", nHours, maxTemperature),
                     fontSize = 18.sp
                 )
             }
@@ -249,12 +249,12 @@ fun TemperatureInfoBlock(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (minTemperature < -200.0) "Загрузка..." else String.format("Минимальная влажность (за последние %d часов): %.1f%%", nHours, minTemperature),
+                    text = if (minTemperature < -200.0) "Загрузка..." else String.format("Минимальная влажность (за последние %d минут): %.1f%%", nHours, minTemperature),
                     fontSize = 18.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (maxTemperature < -200.0) "Загрузка..." else String.format("Максимальная влажность (за последние %d часов): %.1f%%", nHours, maxTemperature),
+                    text = if (maxTemperature < -200.0) "Загрузка..." else String.format("Максимальная влажность (за последние %d минут): %.1f%%", nHours, maxTemperature),
                     fontSize = 18.sp
                 )
             }
@@ -265,12 +265,12 @@ fun TemperatureInfoBlock(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (minTemperature < -200.0) "Загрузка..." else String.format("Минимальная яркость (за последние %d часов): %.1f %", nHours, minTemperature),
+                    text = if (minTemperature < -200.0) "Загрузка..." else String.format("Минимальная яркость (за последние %d минут): %.1f %", nHours, minTemperature),
                     fontSize = 18.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (maxTemperature < -200.0) "Загрузка..." else String.format("Максимальная яркость (за последние %d часов): %.1f %", nHours, maxTemperature),
+                    text = if (maxTemperature < -200.0) "Загрузка..." else String.format("Максимальная яркость (за последние %d минут): %.1f %", nHours, maxTemperature),
                     fontSize = 18.sp
                 )
             }

@@ -119,11 +119,23 @@ class RoomPageViewModel(application: Application) : AndroidViewModel(application
             val prev = _roomStateId.value
             Log.i("setting room state id to", stateId.toString())
             _roomStateId.postValue(stateId)
-            while (_roomStateId.value == prev) {
-                Log.i("sync stateId", "waiting")
+
+            // Wait for _roomStateId.value to update
+            var retryCount = 0
+            val maxRetries = 1000
+            val sleepTime = 10L // in milliseconds
+
+            while (_roomStateId.value == prev && retryCount < maxRetries) {
+                Thread.sleep(sleepTime)
+                retryCount++
             }
+
             Log.i("set roomStateId to", _roomStateId.value.toString())
 
+            if (_roomStateId.value == prev) {
+                Log.w("setSyncRoomStateId", "roomStateId value did not change after setting it to $stateId")
+            }
         }
     }
+
 }

@@ -62,6 +62,7 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.R
+import se.ifmo.ru.smartapp.ui.pages.PageNames.ROOM_PAGE
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -132,7 +133,7 @@ fun SensorPageContent(navController: NavController) {
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        PageUtils.moveToPage(scope, navController, "room")
+                        PageUtils.moveToPage(scope, navController, ROOM_PAGE.pageName)
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }

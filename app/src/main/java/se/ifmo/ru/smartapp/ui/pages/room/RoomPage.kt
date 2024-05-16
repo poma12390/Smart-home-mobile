@@ -65,6 +65,7 @@ import se.ifmo.ru.smartapp.R
 import se.ifmo.ru.smartapp.ui.data.RangeSwitch
 import se.ifmo.ru.smartapp.ui.data.Sensor
 import se.ifmo.ru.smartapp.ui.data.Switch
+import se.ifmo.ru.smartapp.ui.pages.PageNames.SENSOR_PAGE
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 
@@ -494,12 +495,12 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Determine the unit and background color based on the sensor type
+    // Определение единицы измерения и цвета фона на основе типа датчика
     val (unit, backgroundColor) = when (sensor.type) {
-        "temperature" -> "°C" to Color(0xFFFFF3E0) // Light orange
-        "humidity" -> "%" to Color(0xFFE0F7FA) // Light blue
-        "light" -> "%" to Color(0xFFFFF9C4) // Light yellow
-        else -> "" to Color(0xFFE0E0E0) // Light gray
+        "temperature" -> "°C" to Color(0xFFFFF3E0) // Светло-оранжевый
+        "humidity" -> "%" to Color(0xFFE0F7FA) // Светло-голубой
+        "light" -> "%" to Color(0xFFFFF9C4) // Светло-желтый
+        else -> "" to Color(0xFFE0E0E0) // Светло-серый
     }
 
     val iconResource = getIconResource(sensor.type)
@@ -516,7 +517,7 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
                     sensor.value.toFloat(),
                     sensor.type
                 )
-                moveToPage(scope, navController, "sensor")
+                moveToPage(scope, navController, SENSOR_PAGE.pageName)
             },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(
@@ -535,7 +536,7 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Display the larger sensor icon
+                // Отображение большого значка датчика
                 Image(
                     painter = painterResource(id = iconResource),
                     contentDescription = null,
@@ -550,7 +551,7 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Text(
-                text = "${sensor.value} $unit",
+                text = String.format("%.1f $unit", sensor.value),
                 fontSize = 16.sp,
                 color = Color.Gray,
                 modifier = Modifier.align(Alignment.Start)
@@ -558,6 +559,7 @@ fun DeviceSensorCard(sensor: Sensor, navController: NavController) {
         }
     }
 }
+
 
 
 private fun saveSensorIdToCache(

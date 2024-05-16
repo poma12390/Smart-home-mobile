@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.R
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
+import se.ifmo.ru.smartapp.ui.pages.PageNames.ROOM_PAGE
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 
@@ -136,13 +137,13 @@ fun TopSection(
             Spacer(modifier = Modifier.height(8.dp))
             Text("Снаружи", color = Color.Gray)
             Text(
-                text = if (weatherOutside < -200.0) "Загрузка..." else "${weatherOutside}°C",
+                text = if (weatherOutside < -200.0) "Загрузка..." else String.format("%.1f°C", weatherOutside),
                 fontSize = 18.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text("Внутри", color = Color.Gray)
             Text(
-                text = if (weatherInside < -200.0) "Загрузка..." else "${weatherInside}°C",
+                text = if (weatherInside < -200.0) "Загрузка..." else String.format("%.1f°C", weatherInside),
                 fontSize = 18.sp
             )
         }
@@ -152,7 +153,7 @@ fun TopSection(
             Spacer(modifier = Modifier.height(8.dp))
             Text("Мощность", color = Color.Gray)
             Text(
-                text = if (electricity < -200.0) "Загрузка..." else "$electricity kW",
+                text = if (electricity < -200.0) "Загрузка..." else String.format("%.1f W", electricity),
                 fontSize = 18.sp
             )
         }
@@ -182,6 +183,7 @@ fun TopSection(
         }
     }
 }
+
 
 
 @Composable
@@ -317,7 +319,7 @@ fun RoomItem(room: Room, navController: NavController) {
             .clickable {
                 coroutineScope.launch {
                     saveRoomToCache(context, room.id, room.name, room.type)
-                    moveToPage(coroutineScope, navController, "room")
+                    moveToPage(coroutineScope, navController, ROOM_PAGE.pageName)
                 }
             }
     ) {

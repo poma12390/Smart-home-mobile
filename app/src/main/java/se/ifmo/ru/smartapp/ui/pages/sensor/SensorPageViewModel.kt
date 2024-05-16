@@ -15,6 +15,7 @@ import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
+import se.ifmo.ru.smartapp.ui.pages.PageNames.ROOM_PAGE
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import java.io.IOException
 
@@ -42,7 +43,7 @@ class SensorPageViewModel(application: Application) : AndroidViewModel(applicati
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 Log.e("request", "ex: ${e.message}")
-                PageUtils.moveToPage(coroutineScope, navController, "room")
+                PageUtils.moveToPage(coroutineScope, navController, ROOM_PAGE.pageName)
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -72,7 +73,7 @@ class SensorPageViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 } else {
                     Log.e("request", "Response not successful: ${response.message}")
-                    PageUtils.moveToPage(coroutineScope, navController, "room")
+                    PageUtils.moveToPage(coroutineScope, navController, ROOM_PAGE.pageName)
                 }
             }
         })

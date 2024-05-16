@@ -47,7 +47,7 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
         val filteredRooms = rooms.filter { !roomExist(it.id, _rooms) }
         if (filteredRooms.isEmpty()) return
         synchronized(_rooms) {
-            val size = _rooms.value?.size
+            val initialSize = _rooms.value?.size ?: 0
             filteredRooms.forEach { room ->
                 Log.i("adding rooms", room.name)
             }
@@ -55,12 +55,24 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
             val updatedRooms = currentRooms + filteredRooms
             _rooms.postValue(updatedRooms)
 
-            while (_rooms.value!!.size == size) {
-                Log.i("sync room", "waiting")
+            var retryCount = 0
+            val maxRetries = 1000
+            val sleepTime = 10L // in milliseconds
+
+            while (_rooms.value?.size == initialSize && retryCount < maxRetries) {
+                Thread.sleep(sleepTime)
+                retryCount++
             }
-            Log.i("adding ${_rooms.value!!.size - size!!}rooms complete", _rooms.value!!.toString())
+
+            val newSize = _rooms.value?.size ?: initialSize
+            Log.i("adding ${newSize - initialSize} rooms complete", _rooms.value.toString())
+
+            if (_rooms.value?.size == initialSize) {
+                Log.w("addSyncRooms", "rooms value did not change after adding new rooms")
+            }
         }
     }
+
 
     fun setSyncHomeStateId(stateId: Long) {
         if (_homeStateId.value == null || stateId == _homeStateId.value) return
@@ -68,13 +80,24 @@ class MainPageViewModel(application: Application) : AndroidViewModel(application
             val prev = _homeStateId.value
             Log.i("setting home state id to", stateId.toString())
             _homeStateId.postValue(stateId)
-            while (_homeStateId.value == prev) {
-                Log.i("sync stateId", "waiting")
+
+            var retryCount = 0
+            val maxRetries = 1000
+            val sleepTime = 10L
+
+            while (_homeStateId.value == prev && retryCount < maxRetries) {
+                Thread.sleep(sleepTime)
+                retryCount++
             }
+
             Log.i("set homeStateId to", _homeStateId.value.toString())
 
+            if (_homeStateId.value == prev) {
+                Log.w("setSyncHomeStateId", "homeStateId value did not change after setting it to $stateId")
+            }
         }
     }
+
 
 
 

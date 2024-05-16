@@ -1,8 +1,6 @@
 package se.ifmo.ru.smartapp.ui.pages
 
 import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,13 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -50,9 +44,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
-import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
-import se.ifmo.ru.smartapp.ui.pages.PageNames.REGISTER_PAGE
 import se.ifmo.ru.smartapp.ui.pages.PageNames.MAIN_PAGE
+import se.ifmo.ru.smartapp.ui.pages.PageNames.REGISTER_PAGE
+import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
 import java.io.IOException
 
 

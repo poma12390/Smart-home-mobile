@@ -18,26 +18,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Light
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Power
-import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material.icons.filled.Water
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -248,12 +236,19 @@ fun DeviceSwitchCard(switch: Switch, roomStateId: Long) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Icon based on switch type
-                Image(
-                    painter = painterResource(id = iconResource),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-                )
+                if (roomStateId < switch.stateId) {
+                    CircularProgressIndicator(
+                        color = Color.Black,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(40.dp)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = iconResource),
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
                 androidx.compose.material3.Switch(
                     checked = isEnabled,
                     onCheckedChange = { if (roomStateId >= switch.stateId) toggleSwitch() },
@@ -336,11 +331,9 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
                 else -> Color(0xFFFC4E4E) // Light Red
             }
         }
-
         rangeSwitch.type == "light" && isEnabled -> {
             Color(0xFFF3B435)
         }
-
         else -> Color(0xffe7e0ec)
     }
 
@@ -349,6 +342,9 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
     } else {
         getIconResource(rangeSwitch.type)
     }
+
+    val switchThumbColor = if (roomStateId < rangeSwitch.stateId) Color.Gray else Color.White
+    val switchTrackColor = if (isEnabled) backgroundColor else Color.LightGray
 
     Card(
         modifier = Modifier
@@ -373,11 +369,19 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Image(
-                    painter = painterResource(id = iconResource),
-                    contentDescription = rangeSwitch.name,
-                    modifier = Modifier.size(40.dp)
-                )
+                if (roomStateId < rangeSwitch.stateId) {
+                    CircularProgressIndicator(
+                        color = Color.Black,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(40.dp)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = iconResource),
+                        contentDescription = rangeSwitch.name,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
                 androidx.compose.material3.Switch(
                     checked = isEnabled,
                     onCheckedChange = {
@@ -388,7 +392,7 @@ fun DeviceRangeSwitchCard(rangeSwitch: RangeSwitch, roomStateId: Long) {
                     thumbContent = {
                         Box(
                             modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(50))
+                                .background(switchThumbColor, RoundedCornerShape(50))
                                 .size(20.dp)
                         )
                     },

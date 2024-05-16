@@ -60,8 +60,6 @@ import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import se.ifmo.ru.smartapp.R
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
@@ -97,12 +95,6 @@ fun SensorPageContent(navController: NavController) {
         coroutineScope {
             launch {
                 viewModel.fetchOutsideState(this, navController, sensorId)
-            }
-            launch {
-                while (isActive) {
-                    viewModel.fetchOutsideState(this, navController, sensorId)
-                    delay(5000)
-                }
             }
         }
     }

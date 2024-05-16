@@ -2,7 +2,6 @@ package se.ifmo.ru.smartapp.ui.pages
 
 import android.app.Application
 import android.util.Log
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay

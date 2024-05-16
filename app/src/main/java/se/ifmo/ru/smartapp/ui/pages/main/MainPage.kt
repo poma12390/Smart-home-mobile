@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -31,9 +30,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeviceUnknown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -57,23 +55,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import se.ifmo.ru.smartapp.MainActivity
 import se.ifmo.ru.smartapp.R
-import se.ifmo.ru.smartapp.exceptions.LoginException
-import se.ifmo.ru.smartapp.network.SwitchUpdater
 import se.ifmo.ru.smartapp.ui.data.Room
 import se.ifmo.ru.smartapp.ui.data.Switch
-import se.ifmo.ru.smartapp.ui.data.WeatherData
 import se.ifmo.ru.smartapp.ui.pages.PageUtils
 import se.ifmo.ru.smartapp.ui.pages.PageUtils.Companion.moveToPage
-import se.ifmo.ru.smartapp.ui.pages.room.RoomPageViewModel
-import se.ifmo.ru.smartapp.ui.pages.room.RoomPageViewModelFactory
 
 
 @Composable
@@ -235,8 +225,8 @@ fun DeviceItem(switch: Switch, homeStateId: Long) {
     val backgroundColor = when {
         isLocked -> Color.Gray
         !isEnabled -> Color.LightGray
-        switch.type == "power" -> Color(0xFFFCEA51) // Yellow for WiFi
-        switch.type == "lock" -> Color(0xFFF89239) // Green for Lock
+        switch.type == "power" -> Color(0xFFFCEA51) // Yellow for Power
+        switch.type == "lock" -> Color(0xFFF89239) // Orange for Lock
         else -> Color(0xFF76FF03) // Default enabled color
     }
 
@@ -263,12 +253,20 @@ fun DeviceItem(switch: Switch, homeStateId: Long) {
                     toggleSwitch()
                 }
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = switch.name,
-                tint = Color.Black,
-                modifier = Modifier.size(40.dp)
-            )
+            if (isLocked) {
+                CircularProgressIndicator(
+                    color = Color.Black,
+                    strokeWidth = 4.dp,
+                    modifier = Modifier.size(40.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = switch.name,
+                    tint = Color.Black,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
         }
         Text(
             text = switch.name,
@@ -279,6 +277,7 @@ fun DeviceItem(switch: Switch, homeStateId: Long) {
         )
     }
 }
+
 
 
 @Composable
